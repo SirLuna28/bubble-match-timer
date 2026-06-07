@@ -14,7 +14,7 @@ export default function Home() {
     <div className="game-container">
       {/* Background with hero image */}
       <div
-        className="absolute inset-0 w-full h-full"
+        className="absolute inset-0 w-full h-full pointer-events-none"
         style={{
           backgroundImage: `url('https://d2xsxph8kpxj0f.cloudfront.net/310519663707547870/WBKamk4m2zg6U4yPd2Ftwq/bmt-logo-bg-CtG7rXFrg3TBtTPExhekUm.webp')`,
           backgroundSize: 'cover',
@@ -24,7 +24,7 @@ export default function Home() {
       />
 
       {/* Overlay for text readability */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/80 pointer-events-none" />
 
       {/* Content */}
       <div className="relative z-10 flex flex-col items-center justify-center flex-1 px-6 text-center">

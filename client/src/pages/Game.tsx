@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Pause, Home } from 'lucide-react';
+import { useLocation } from 'wouter';
 
 interface Bubble {
   id: string;
@@ -13,51 +14,47 @@ interface Bubble {
   matched: boolean;
 }
 
-interface GameState {
-  score: number;
-  level: number;
-  timeLeft: number;
-  isPaused: boolean;
-  bubbles: Bubble[];
-  selectedBubbles: string[];
-}
+const BUBBLE_COLORS = [
+  '#00FF88', // green
+  '#FF1493', // pink
+  '#00BFFF', // cyan
+  '#FFD700', // orange
+  '#FF6347', // red
+];
 
-const BUBBLE_COLORS = ['#00FF88', '#FF1493', '#00BFFF', '#FFD700', '#FF6347'];
-const COLORS_MAP: { [key: string]: string } = {
-  '#00FF88': 'neon-green',
-  '#FF1493': 'neon-pink',
-  '#00BFFF': 'neon-cyan',
-  '#FFD700': 'neon-orange',
-  '#FF6347': 'neon-violet',
-};
+const CANVAS_WIDTH = 360;
+const CANVAS_HEIGHT = 640;
 
 export default function Game() {
+  const [, navigate] = useLocation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  
-  const [gameState, setGameState] = useState<GameState>({
+  const bubblesRef = useRef<Bubble[]>([]);
+  const selectedRef = useRef<Set<string>>(new Set());
+  const gameStateRef = useRef({
     score: 0,
     level: 1,
     timeLeft: 60,
     isPaused: false,
-    bubbles: [],
-    selectedBubbles: [],
+    gameOver: false,
+  });
+  const animationIdRef = useRef<number | null>(null);
+
+  const [gameState, setGameState] = useState({
+    score: 0,
+    level: 1,
+    timeLeft: 60,
+    isPaused: false,
+    gameOver: false,
   });
 
   // Initialize bubbles
   useEffect(() => {
     const bubbles: Bubble[] = [];
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const width = canvas.width;
-    const height = canvas.height;
-
-    for (let i = 0; i < 15 + gameState.level * 2; i++) {
+    for (let i = 0; i < 17; i++) {
       bubbles.push({
         id: `bubble-${i}`,
-        x: Math.random() * (width - 60) + 30,
-        y: Math.random() * (height - 60) + 30,
+        x: Math.random() * (CANVAS_WIDTH - 60) + 30,
+        y: Math.random() * (CANVAS_HEIGHT - 100) + 30,
         color: BUBBLE_COLORS[Math.floor(Math.random() * BUBBLE_COLORS.length)],
         radius: 25,
         vx: (Math.random() - 0.5) * 2,
@@ -65,179 +62,209 @@ export default function Game() {
         matched: false,
       });
     }
+    bubblesRef.current = bubbles;
+  }, []);
 
-    setGameState((prev) => ({ ...prev, bubbles }));
-  }, [gameState.level]);
-
-  // Timer countdown
+  // Timer
   useEffect(() => {
-    if (gameState.isPaused || gameState.timeLeft <= 0) return;
+    if (gameStateRef.current.isPaused || gameStateRef.current.timeLeft <= 0 || gameStateRef.current.gameOver) return;
 
     const timer = setInterval(() => {
-      setGameState((prev) => ({
-        ...prev,
-        timeLeft: Math.max(0, prev.timeLeft - 1),
-      }));
+      gameStateRef.current.timeLeft = Math.max(0, gameStateRef.current.timeLeft - 1);
+      setGameState({ ...gameStateRef.current });
+
+      if (gameStateRef.current.timeLeft === 0) {
+        gameStateRef.current.gameOver = true;
+        gameStateRef.current.isPaused = true;
+        setGameState({ ...gameStateRef.current });
+      }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [gameState.isPaused, gameState.timeLeft]);
+  }, []);
 
-  // Game over when time runs out
-  useEffect(() => {
-    if (gameState.timeLeft === 0) {
-      setGameState((prev) => ({ ...prev, isPaused: true }));
+  // Handle canvas click with visual feedback
+  const handleCanvasClick = useCallback((e: PointerEvent | MouseEvent) => {
+    if (gameStateRef.current.isPaused || gameStateRef.current.gameOver) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = CANVAS_WIDTH / rect.width;
+    const scaleY = CANVAS_HEIGHT / rect.height;
+
+    const clickX = (e.clientX - rect.left) * scaleX;
+    const clickY = (e.clientY - rect.top) * scaleY;
+
+    let clickedBubble: Bubble | null = null;
+
+    // Find clicked bubble
+    for (let i = bubblesRef.current.length - 1; i >= 0; i--) {
+      const bubble = bubblesRef.current[i];
+      if (bubble.matched) continue;
+
+      const dist = Math.sqrt((clickX - bubble.x) ** 2 + (clickY - bubble.y) ** 2);
+      if (dist < bubble.radius) {
+        clickedBubble = bubble;
+        break;
+      }
     }
-  }, [gameState.timeLeft]);
 
-  // Physics and rendering
+    if (!clickedBubble) {
+      return;
+    }
+
+    // Toggle selection
+    if (selectedRef.current.has(clickedBubble.id)) {
+      selectedRef.current.delete(clickedBubble.id);
+    } else {
+      selectedRef.current.add(clickedBubble.id);
+    }
+
+    // Check for match
+    if (selectedRef.current.size === 3) {
+      const selectedBubbles = bubblesRef.current.filter((b) =>
+        selectedRef.current.has(b.id)
+      );
+
+      const allSameColor = selectedBubbles.every(
+        (b) => b.color === selectedBubbles[0].color
+      );
+
+      if (allSameColor) {
+        selectedBubbles.forEach((b) => {
+          b.matched = true;
+        });
+
+        gameStateRef.current.score += 30;
+        setGameState({ ...gameStateRef.current });
+
+        selectedRef.current.clear();
+      } else {
+        selectedRef.current.clear();
+      }
+    }
+  }, []);
+
+  // Attach click handler to canvas
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || gameState.isPaused) return;
+    if (!canvas) return;
+
+    const handlePointerDown = (e: PointerEvent) => handleCanvasClick(e);
+    const handleMouseDown = (e: MouseEvent) => handleCanvasClick(e);
+
+    canvas.addEventListener('pointerdown', handlePointerDown);
+    canvas.addEventListener('mousedown', handleMouseDown);
+
+    return () => {
+      canvas.removeEventListener('pointerdown', handlePointerDown);
+      canvas.removeEventListener('mousedown', handleMouseDown);
+    };
+  }, [handleCanvasClick]);
+
+  // Animation loop
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const animate = () => {
-      // Clear canvas with cosmic background
-      ctx.fillStyle = 'rgba(10, 14, 39, 0.1)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (gameStateRef.current.isPaused || gameStateRef.current.gameOver) {
+        animationIdRef.current = requestAnimationFrame(animate);
+        return;
+      }
 
-      // Update and draw bubbles
-      setGameState((prev) => {
-        const updatedBubbles = prev.bubbles.map((bubble) => {
-          if (bubble.matched) return bubble;
+      // Clear
+      ctx.fillStyle = 'rgba(10, 14, 39, 0.3)';
+      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-          let { x, y, vx, vy } = bubble;
+      // Update physics
+      bubblesRef.current.forEach((bubble) => {
+        if (bubble.matched) return;
 
-          // Bounce off walls
-          if (x - bubble.radius < 0 || x + bubble.radius > canvas.width) {
-            vx *= -1;
-            x = Math.max(bubble.radius, Math.min(canvas.width - bubble.radius, x));
-          }
-          if (y - bubble.radius < 0 || y + bubble.radius > canvas.height) {
-            vy *= -1;
-            y = Math.max(bubble.radius, Math.min(canvas.height - bubble.radius, y));
-          }
+        bubble.vy += 0.15;
+        bubble.vx *= 0.98;
+        bubble.vy *= 0.98;
 
-          // Apply gravity
-          vy += 0.1;
+        if (bubble.x - bubble.radius < 0 || bubble.x + bubble.radius > CANVAS_WIDTH) {
+          bubble.vx *= -0.9;
+          bubble.x = Math.max(bubble.radius, Math.min(CANVAS_WIDTH - bubble.radius, bubble.x));
+        }
+        if (bubble.y - bubble.radius < 0 || bubble.y + bubble.radius > CANVAS_HEIGHT) {
+          bubble.vy *= -0.9;
+          bubble.y = Math.max(bubble.radius, Math.min(CANVAS_HEIGHT - bubble.radius, bubble.y));
+        }
 
-          // Damping
-          vx *= 0.99;
-          vy *= 0.99;
-
-          return { ...bubble, x: x + vx, y: y + vy, vx, vy };
-        });
-
-        // Draw bubbles
-        updatedBubbles.forEach((bubble) => {
-          if (bubble.matched) return;
-
-          const isSelected = prev.selectedBubbles.includes(bubble.id);
-
-          // Draw bubble
-          ctx.fillStyle = bubble.color;
-          ctx.beginPath();
-          ctx.arc(bubble.x, bubble.y, bubble.radius, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Glow effect
-          ctx.strokeStyle = bubble.color;
-          ctx.lineWidth = 2;
-          ctx.globalAlpha = 0.5;
-          ctx.stroke();
-          ctx.globalAlpha = 1;
-
-          // Selection ring
-          if (isSelected) {
-            ctx.strokeStyle = '#00FF88';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(bubble.x, bubble.y, bubble.radius + 5, 0, Math.PI * 2);
-            ctx.stroke();
-          }
-        });
-
-        return { ...prev, bubbles: updatedBubbles };
+        bubble.x += bubble.vx;
+        bubble.y += bubble.vy;
       });
 
-      animationFrameRef.current = requestAnimationFrame(animate);
+      // Draw bubbles
+      bubblesRef.current.forEach((bubble) => {
+        if (bubble.matched) return;
+
+        const isSelected = selectedRef.current.has(bubble.id);
+
+        // Draw bubble
+        ctx.fillStyle = bubble.color;
+        ctx.beginPath();
+        ctx.arc(bubble.x, bubble.y, bubble.radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Glow
+        ctx.strokeStyle = bubble.color;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.6;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // Selection ring - bright green
+        if (isSelected) {
+          ctx.strokeStyle = '#00FF88';
+          ctx.lineWidth = 5;
+          ctx.globalAlpha = 1;
+          ctx.beginPath();
+          ctx.arc(bubble.x, bubble.y, bubble.radius + 10, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.globalAlpha = 1;
+        }
+      });
+
+      animationIdRef.current = requestAnimationFrame(animate);
     };
 
-    animationFrameRef.current = requestAnimationFrame(animate);
-
+    animationIdRef.current = requestAnimationFrame(animate);
     return () => {
-      if (animationFrameRef.current !== null) {
-        cancelAnimationFrame(animationFrameRef.current);
-      }
+      if (animationIdRef.current) cancelAnimationFrame(animationIdRef.current);
     };
-  }, [gameState.isPaused]);
-
-  // Handle bubble click
-  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas || gameState.isPaused) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    // Check if click is on a bubble
-    gameState.bubbles.forEach((bubble) => {
-      if (bubble.matched) return;
-
-      const distance = Math.sqrt((x - bubble.x) ** 2 + (y - bubble.y) ** 2);
-      if (distance < bubble.radius) {
-        setGameState((prev) => {
-          const newSelected = prev.selectedBubbles.includes(bubble.id)
-            ? prev.selectedBubbles.filter((id) => id !== bubble.id)
-            : [...prev.selectedBubbles, bubble.id];
-
-          // Check for match (3 of same color)
-          if (newSelected.length === 3) {
-            const selectedBubbles = prev.bubbles.filter((b) =>
-              newSelected.includes(b.id)
-            );
-            const allSameColor = selectedBubbles.every(
-              (b) => b.color === selectedBubbles[0].color
-            );
-
-            if (allSameColor) {
-              // Match found!
-              const matchedIds = new Set(newSelected);
-              const updatedBubbles = prev.bubbles.map((b) =>
-                matchedIds.has(b.id) ? { ...b, matched: true } : b
-              );
-
-              return {
-                ...prev,
-                score: prev.score + 30,
-                bubbles: updatedBubbles,
-                selectedBubbles: [],
-              };
-            } else {
-              // No match, clear selection
-              return { ...prev, selectedBubbles: [] };
-            }
-          }
-
-          return { ...prev, selectedBubbles: newSelected };
-        });
-      }
-    });
-  };
+  }, []);
 
   const handlePause = () => {
-    setGameState((prev) => ({ ...prev, isPaused: !prev.isPaused }));
+    gameStateRef.current.isPaused = !gameStateRef.current.isPaused;
+    setGameState({ ...gameStateRef.current });
   };
 
   const handleHome = () => {
-    // Navigate back to home
-    window.location.href = '/';
+    navigate('/');
   };
 
-  // Timer color based on urgency
+  const handleRestart = () => {
+    selectedRef.current.clear();
+    bubblesRef.current = [];
+    gameStateRef.current = {
+      score: 0,
+      level: 1,
+      timeLeft: 60,
+      isPaused: false,
+      gameOver: false,
+    };
+    setGameState({ ...gameStateRef.current });
+  };
+
   const getTimerColor = () => {
     if (gameState.timeLeft > 30) return 'text-neon-green';
     if (gameState.timeLeft > 10) return 'text-neon-orange';
@@ -246,14 +273,14 @@ export default function Game() {
 
   return (
     <div className="game-container">
-      {/* Top HUD */}
+      {/* HUD */}
       <div className="hud-top">
         <div className="text-sm font-ui">
-          <div className="text-muted-foreground">Level</div>
+          <div className="text-muted-foreground text-xs">Level</div>
           <div className="text-lg font-bold text-neon-cyan">{gameState.level}</div>
         </div>
         <div className="text-sm font-ui text-center">
-          <div className="text-muted-foreground">Score</div>
+          <div className="text-muted-foreground text-xs">Score</div>
           <div className="text-lg font-bold text-neon-pink">{gameState.score}</div>
         </div>
         <div className={`text-sm font-ui text-center font-timer ${getTimerColor()}`}>
@@ -262,19 +289,18 @@ export default function Game() {
         </div>
       </div>
 
-      {/* Game Canvas */}
+      {/* Canvas */}
       <div className="game-canvas">
         <canvas
           ref={canvasRef}
-          width={360}
-          height={640}
-          onClick={handleCanvasClick}
-          className="w-full h-full bg-gradient-to-b from-purple-950/40 to-blue-950/40"
-          style={{ backgroundImage: `url('https://d2xsxph8kpxj0f.cloudfront.net/310519663707547870/WBKamk4m2zg6U4yPd2Ftwq/bmt-hero-bg-TMNJSai9t2aDYKtGWGZLkX.webp')` }}
+          width={CANVAS_WIDTH}
+          height={CANVAS_HEIGHT}
+          className="w-full h-full bg-gradient-to-b from-purple-950/40 to-blue-950/40 cursor-pointer touch-none"
+          style={{ touchAction: 'none' }}
         />
       </div>
 
-      {/* Bottom Control Bar */}
+      {/* Controls */}
       <div className="control-bar">
         <Button
           onClick={handlePause}
@@ -292,25 +318,33 @@ export default function Game() {
         </Button>
       </div>
 
-      {/* Game Over Modal */}
-      {gameState.timeLeft === 0 && (
-        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+      {/* Game Over */}
+      {gameState.gameOver && (
+        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 pointer-events-auto">
           <div className="text-center">
             <h1 className="text-4xl font-logo text-neon-glow-green mb-4">Game Over</h1>
-            <p className="text-2xl font-timer text-neon-pink mb-8">Score: {gameState.score}</p>
-            <Button
-              onClick={handleHome}
-              className="bg-neon-cyan hover:bg-neon-cyan/80 text-background font-bold"
-            >
-              Back to Menu
-            </Button>
+            <p className="text-2xl font-timer text-neon-pink mb-2">Score: {gameState.score}</p>
+            <div className="flex gap-4 mt-8">
+              <Button
+                onClick={handleRestart}
+                className="bg-neon-cyan hover:bg-neon-cyan/80 text-background font-bold"
+              >
+                Play Again
+              </Button>
+              <Button
+                onClick={handleHome}
+                className="bg-neon-pink hover:bg-neon-pink/80 text-background font-bold"
+              >
+                Menu
+              </Button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Pause Menu */}
-      {gameState.isPaused && gameState.timeLeft > 0 && (
-        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-50">
+      {/* Pause */}
+      {gameState.isPaused && !gameState.gameOver && (
+        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 pointer-events-auto">
           <div className="text-center">
             <h1 className="text-4xl font-logo text-neon-glow-green mb-8">Paused</h1>
             <Button

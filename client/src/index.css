@@ -175,6 +175,12 @@
   /* Game canvas area: flexible, fills remaining space */
   .game-canvas {
     @apply flex-1 flex items-center justify-center relative overflow-hidden;
+    z-index: 10;
+    pointer-events: auto;
+  }
+  
+  .game-canvas canvas {
+    pointer-events: auto;
   }
   
   /* Neon glow effects */
