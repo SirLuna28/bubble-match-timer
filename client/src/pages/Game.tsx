@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Pause, Home } from 'lucide-react';
 import { useLocation } from 'wouter';
@@ -28,16 +28,16 @@ const CANVAS_HEIGHT = 640;
 export default function Game() {
   const [, navigate] = useLocation();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const bubblesRef = useRef<Bubble[]>([]);
-  const selectedRef = useRef<Set<string>>(new Set());
-  const gameStateRef = useRef({
+  const gameRef = useRef({
+    bubbles: [] as Bubble[],
+    selected: new Set<string>(),
     score: 0,
     level: 1,
     timeLeft: 60,
     isPaused: false,
     gameOver: false,
+    animationId: 0,
   });
-  const animationIdRef = useRef<number | null>(null);
 
   const [gameState, setGameState] = useState({
     score: 0,
@@ -62,107 +62,91 @@ export default function Game() {
         matched: false,
       });
     }
-    bubblesRef.current = bubbles;
+    gameRef.current.bubbles = bubbles;
   }, []);
 
   // Timer
   useEffect(() => {
-    if (gameStateRef.current.isPaused || gameStateRef.current.timeLeft <= 0 || gameStateRef.current.gameOver) return;
+    if (gameRef.current.isPaused || gameRef.current.timeLeft <= 0 || gameRef.current.gameOver) return;
 
     const timer = setInterval(() => {
-      gameStateRef.current.timeLeft = Math.max(0, gameStateRef.current.timeLeft - 1);
-      setGameState({ ...gameStateRef.current });
+      gameRef.current.timeLeft = Math.max(0, gameRef.current.timeLeft - 1);
+      setGameState({ ...gameRef.current });
 
-      if (gameStateRef.current.timeLeft === 0) {
-        gameStateRef.current.gameOver = true;
-        gameStateRef.current.isPaused = true;
-        setGameState({ ...gameStateRef.current });
+      if (gameRef.current.timeLeft === 0) {
+        gameRef.current.gameOver = true;
+        gameRef.current.isPaused = true;
+        setGameState({ ...gameRef.current });
       }
     }, 1000);
 
     return () => clearInterval(timer);
   }, []);
 
-  // Handle canvas click with visual feedback
-  const handleCanvasClick = useCallback((e: PointerEvent | MouseEvent) => {
-    if (gameStateRef.current.isPaused || gameStateRef.current.gameOver) return;
-
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = CANVAS_WIDTH / rect.width;
-    const scaleY = CANVAS_HEIGHT / rect.height;
-
-    const clickX = (e.clientX - rect.left) * scaleX;
-    const clickY = (e.clientY - rect.top) * scaleY;
-
-    let clickedBubble: Bubble | null = null;
-
-    // Find clicked bubble
-    for (let i = bubblesRef.current.length - 1; i >= 0; i--) {
-      const bubble = bubblesRef.current[i];
-      if (bubble.matched) continue;
-
-      const dist = Math.sqrt((clickX - bubble.x) ** 2 + (clickY - bubble.y) ** 2);
-      if (dist < bubble.radius) {
-        clickedBubble = bubble;
-        break;
-      }
-    }
-
-    if (!clickedBubble) {
-      return;
-    }
-
-    // Toggle selection
-    if (selectedRef.current.has(clickedBubble.id)) {
-      selectedRef.current.delete(clickedBubble.id);
-    } else {
-      selectedRef.current.add(clickedBubble.id);
-    }
-
-    // Check for match
-    if (selectedRef.current.size === 3) {
-      const selectedBubbles = bubblesRef.current.filter((b) =>
-        selectedRef.current.has(b.id)
-      );
-
-      const allSameColor = selectedBubbles.every(
-        (b) => b.color === selectedBubbles[0].color
-      );
-
-      if (allSameColor) {
-        selectedBubbles.forEach((b) => {
-          b.matched = true;
-        });
-
-        gameStateRef.current.score += 30;
-        setGameState({ ...gameStateRef.current });
-
-        selectedRef.current.clear();
-      } else {
-        selectedRef.current.clear();
-      }
-    }
-  }, []);
-
-  // Attach click handler to canvas
+  // Canvas click handler
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const handlePointerDown = (e: PointerEvent) => handleCanvasClick(e);
-    const handleMouseDown = (e: MouseEvent) => handleCanvasClick(e);
+    const handleClick = (e: MouseEvent | PointerEvent) => {
+      if (gameRef.current.isPaused || gameRef.current.gameOver) return;
 
-    canvas.addEventListener('pointerdown', handlePointerDown);
-    canvas.addEventListener('mousedown', handleMouseDown);
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = CANVAS_WIDTH / rect.width;
+      const scaleY = CANVAS_HEIGHT / rect.height;
+
+      const clickX = (e.clientX - rect.left) * scaleX;
+      const clickY = (e.clientY - rect.top) * scaleY;
+
+      // Find clicked bubble (check from end to start for proper layering)
+      for (let i = gameRef.current.bubbles.length - 1; i >= 0; i--) {
+        const bubble = gameRef.current.bubbles[i];
+        if (bubble.matched) continue;
+
+        const dist = Math.sqrt((clickX - bubble.x) ** 2 + (clickY - bubble.y) ** 2);
+        if (dist < bubble.radius) {
+          // Toggle selection
+          if (gameRef.current.selected.has(bubble.id)) {
+            gameRef.current.selected.delete(bubble.id);
+          } else {
+            gameRef.current.selected.add(bubble.id);
+          }
+
+          // Check for match
+          if (gameRef.current.selected.size === 3) {
+            const selectedBubbles = gameRef.current.bubbles.filter((b) =>
+              gameRef.current.selected.has(b.id)
+            );
+
+            const allSameColor = selectedBubbles.every(
+              (b) => b.color === selectedBubbles[0].color
+            );
+
+            if (allSameColor) {
+              selectedBubbles.forEach((b) => {
+                b.matched = true;
+              });
+              gameRef.current.score += 30;
+              gameRef.current.selected.clear();
+              setGameState({ ...gameRef.current });
+            } else {
+              gameRef.current.selected.clear();
+            }
+          }
+
+          break;
+        }
+      }
+    };
+
+    canvas.addEventListener('click', handleClick);
+    canvas.addEventListener('pointerdown', handleClick);
 
     return () => {
-      canvas.removeEventListener('pointerdown', handlePointerDown);
-      canvas.removeEventListener('mousedown', handleMouseDown);
+      canvas.removeEventListener('click', handleClick);
+      canvas.removeEventListener('pointerdown', handleClick);
     };
-  }, [handleCanvasClick]);
+  }, []);
 
   // Animation loop
   useEffect(() => {
@@ -173,23 +157,19 @@ export default function Game() {
     if (!ctx) return;
 
     const animate = () => {
-      if (gameStateRef.current.isPaused || gameStateRef.current.gameOver) {
-        animationIdRef.current = requestAnimationFrame(animate);
-        return;
-      }
-
-      // Clear
+      // Clear canvas
       ctx.fillStyle = 'rgba(10, 14, 39, 0.3)';
       ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
       // Update physics
-      bubblesRef.current.forEach((bubble) => {
+      gameRef.current.bubbles.forEach((bubble) => {
         if (bubble.matched) return;
 
-        bubble.vy += 0.15;
-        bubble.vx *= 0.98;
-        bubble.vy *= 0.98;
+        // No gravity - just friction
+        bubble.vx *= 0.99;
+        bubble.vy *= 0.99;
 
+        // Bounce off walls
         if (bubble.x - bubble.radius < 0 || bubble.x + bubble.radius > CANVAS_WIDTH) {
           bubble.vx *= -0.9;
           bubble.x = Math.max(bubble.radius, Math.min(CANVAS_WIDTH - bubble.radius, bubble.x));
@@ -204,10 +184,10 @@ export default function Game() {
       });
 
       // Draw bubbles
-      bubblesRef.current.forEach((bubble) => {
+      gameRef.current.bubbles.forEach((bubble) => {
         if (bubble.matched) return;
 
-        const isSelected = selectedRef.current.has(bubble.id);
+        const isSelected = gameRef.current.selected.has(bubble.id);
 
         // Draw bubble
         ctx.fillStyle = bubble.color;
@@ -215,37 +195,38 @@ export default function Game() {
         ctx.arc(bubble.x, bubble.y, bubble.radius, 0, Math.PI * 2);
         ctx.fill();
 
-        // Glow
+        // Glow effect
         ctx.strokeStyle = bubble.color;
         ctx.lineWidth = 2;
         ctx.globalAlpha = 0.6;
         ctx.stroke();
         ctx.globalAlpha = 1;
 
-        // Selection ring - bright green
+        // Selection ring
         if (isSelected) {
           ctx.strokeStyle = '#00FF88';
           ctx.lineWidth = 5;
-          ctx.globalAlpha = 1;
           ctx.beginPath();
           ctx.arc(bubble.x, bubble.y, bubble.radius + 10, 0, Math.PI * 2);
           ctx.stroke();
-          ctx.globalAlpha = 1;
         }
       });
 
-      animationIdRef.current = requestAnimationFrame(animate);
+      gameRef.current.animationId = requestAnimationFrame(animate);
     };
 
-    animationIdRef.current = requestAnimationFrame(animate);
+    gameRef.current.animationId = requestAnimationFrame(animate);
+
     return () => {
-      if (animationIdRef.current) cancelAnimationFrame(animationIdRef.current);
+      if (gameRef.current.animationId) {
+        cancelAnimationFrame(gameRef.current.animationId);
+      }
     };
   }, []);
 
   const handlePause = () => {
-    gameStateRef.current.isPaused = !gameStateRef.current.isPaused;
-    setGameState({ ...gameStateRef.current });
+    gameRef.current.isPaused = !gameRef.current.isPaused;
+    setGameState({ ...gameRef.current });
   };
 
   const handleHome = () => {
@@ -253,16 +234,30 @@ export default function Game() {
   };
 
   const handleRestart = () => {
-    selectedRef.current.clear();
-    bubblesRef.current = [];
-    gameStateRef.current = {
-      score: 0,
-      level: 1,
-      timeLeft: 60,
-      isPaused: false,
-      gameOver: false,
-    };
-    setGameState({ ...gameStateRef.current });
+    gameRef.current.selected.clear();
+    gameRef.current.bubbles = [];
+    gameRef.current.score = 0;
+    gameRef.current.level = 1;
+    gameRef.current.timeLeft = 60;
+    gameRef.current.isPaused = false;
+    gameRef.current.gameOver = false;
+
+    // Reinitialize bubbles
+    const bubbles: Bubble[] = [];
+    for (let i = 0; i < 17; i++) {
+      bubbles.push({
+        id: `bubble-${i}`,
+        x: Math.random() * (CANVAS_WIDTH - 60) + 30,
+        y: Math.random() * (CANVAS_HEIGHT - 100) + 30,
+        color: BUBBLE_COLORS[Math.floor(Math.random() * BUBBLE_COLORS.length)],
+        radius: 25,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
+        matched: false,
+      });
+    }
+    gameRef.current.bubbles = bubbles;
+    setGameState({ ...gameRef.current });
   };
 
   const getTimerColor = () => {
@@ -295,8 +290,8 @@ export default function Game() {
           ref={canvasRef}
           width={CANVAS_WIDTH}
           height={CANVAS_HEIGHT}
-          className="w-full h-full bg-gradient-to-b from-purple-950/40 to-blue-950/40 cursor-pointer touch-none"
-          style={{ touchAction: 'none' }}
+          className="w-full h-full bg-gradient-to-b from-purple-950/40 to-blue-950/40 cursor-pointer"
+          style={{ touchAction: 'none', display: 'block' }}
         />
       </div>
 
