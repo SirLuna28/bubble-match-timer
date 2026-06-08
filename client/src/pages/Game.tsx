@@ -232,16 +232,19 @@ export default function Game() {
     };
   }, []);
 
-  const createPopParticles = (bubble: Bubble) => {
-    const particleCount = 8;
+  const createPopParticles = (bubble: Bubble, matchSize: number) => {
+    // Bigger matches = more particles
+    const particleCount = Math.min(50, 8 + matchSize * 3);
+    const speed = 2 + matchSize * 0.5; // Bigger matches = faster particles
+    
     for (let i = 0; i < particleCount; i++) {
-      const angle = (i / particleCount) * Math.PI * 2;
-      const speed = 3 + Math.random() * 2;
+      const angle = (i / particleCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+      const randomSpeed = speed + Math.random() * 2;
       gameRef.current.particles.push({
         x: bubble.x,
         y: bubble.y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
+        vx: Math.cos(angle) * randomSpeed,
+        vy: Math.sin(angle) * randomSpeed,
         life: 1,
         color: bubble.color,
       });
@@ -273,12 +276,20 @@ export default function Game() {
       }
 
       if (connected.size >= 3) {
+        const matchSize = connected.size;
+        // Scoring: 3 bubbles = 30pts, 4 = 60pts, 5 = 100pts, 6+ = exponential
+        let points = 0;
+        if (matchSize === 3) points = 30;
+        else if (matchSize === 4) points = 60;
+        else if (matchSize === 5) points = 100;
+        else points = 50 * matchSize; // 6+ bubbles = 300+ points
+        
         connected.forEach(b => {
           b.matched = true;
-          b.popAnimation = 1;
-          createPopParticles(b);
+          b.popAnimation = 1 + (matchSize - 3) * 0.2; // Bigger matches = longer animation
+          createPopParticles(b, matchSize);
         });
-        gameRef.current.score += connected.size * 10;
+        gameRef.current.score += points;
         setGameState(prev => ({ ...prev, score: gameRef.current.score }));
       }
     }
