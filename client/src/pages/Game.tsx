@@ -520,8 +520,8 @@ export default function Game() {
   }, []);
 
   return (
-    <div className="w-full h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 to-slate-950">
-      <div className="w-full max-w-sm aspect-video flex flex-col bg-slate-900 rounded-lg overflow-hidden shadow-2xl">
+    <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 to-slate-950">
+      <div className="flex flex-col bg-slate-900 rounded-lg overflow-hidden shadow-2xl" style={{ width: '360px', height: '640px', maxWidth: '100vw', maxHeight: '100vh' }}>
         {/* HUD */}
         <div className="flex justify-between items-center px-4 py-3 bg-slate-800 border-b border-slate-700">
           <div className="text-center flex-1">
@@ -552,7 +552,8 @@ export default function Game() {
             ref={canvasRef}
             width={CANVAS_WIDTH}
             height={CANVAS_HEIGHT}
-            className="w-full h-full"
+            className="w-full h-full object-contain"
+            style={{ display: 'block', width: '100%', height: '100%' }}
           />
         </div>
 
