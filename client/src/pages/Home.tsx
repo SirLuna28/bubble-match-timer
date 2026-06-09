@@ -7,7 +7,7 @@ export default function Home() {
   const [, navigate] = useLocation();
 
   const handlePlayClick = () => {
-    navigate('/game');
+    navigate('/menu');
   };
 
   return (
