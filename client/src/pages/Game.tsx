@@ -75,6 +75,9 @@ export default function Game() {
     dragOffsetX: 0,
     dragOffsetY: 0,
     freezeTimeLeft: 0,
+    comboStreak: 0,
+    lastMatchTime: 0,
+    comboMultiplier: 1,
   });
 
   const [gameState, setGameState] = useState({
@@ -85,6 +88,8 @@ export default function Game() {
     isPaused: false,
     gameOver: false,
     levelComplete: false,
+    comboStreak: 0,
+    comboMultiplier: 1,
   });
 
   // Load game config from sessionStorage
@@ -121,6 +126,8 @@ export default function Game() {
         isPaused: false,
         gameOver: false,
         levelComplete: false,
+        comboStreak: 0,
+        comboMultiplier: 1,
       });
     }
   }, []);
@@ -145,7 +152,7 @@ export default function Game() {
           bubble.vx *= (1 + 0.15);
           bubble.vy *= (1 + 0.15);
         });
-        setGameState(prev => ({ ...prev, levelComplete: true, isPaused: true, level: gameRef.current.level }));
+        setGameState(prev => ({ ...prev, levelComplete: true, isPaused: true, level: gameRef.current.level, comboStreak: 0, comboMultiplier: 1 }));
         return;
       }
 
@@ -396,7 +403,7 @@ export default function Game() {
     powerUp.popAnimation = 1;
     createPopParticles(powerUp, 1);
     gameRef.current.score += 200; // Bonus for using power-up
-    setGameState(prev => ({ ...prev, score: gameRef.current.score }));
+    setGameState(prev => ({ ...prev, score: gameRef.current.score, comboStreak: 0, comboMultiplier: 1 }));
   };
 
   const checkMatches = () => {
@@ -444,8 +451,22 @@ export default function Game() {
           spawnPowerUp(centerX, centerY);
         }
 
-        gameRef.current.score += points;
-        setGameState(prev => ({ ...prev, score: gameRef.current.score }));
+        // Check combo streak (matches within 2 seconds)
+        const currentTime = Date.now();
+        if (currentTime - gameRef.current.lastMatchTime < 2000) {
+          gameRef.current.comboStreak += 1;
+          gameRef.current.comboMultiplier = Math.min(1 + gameRef.current.comboStreak * 0.5, 4);
+        } else {
+          gameRef.current.comboStreak = 1;
+          gameRef.current.comboMultiplier = 1;
+        }
+        gameRef.current.lastMatchTime = currentTime;
+        
+        // Apply combo multiplier to points
+        const multipliedPoints = Math.floor(points * gameRef.current.comboMultiplier);
+        
+        gameRef.current.score += multipliedPoints;
+        setGameState(prev => ({ ...prev, score: gameRef.current.score, comboStreak: gameRef.current.comboStreak, comboMultiplier: gameRef.current.comboMultiplier }));
       }
     }
 
@@ -546,6 +567,12 @@ export default function Game() {
             <div className="text-xs text-slate-400">Goal: {gameState.goalScore}</div>
             <div className="text-lg font-bold text-neon-pink">{gameState.timeLeft}s</div>
           </div>
+          {gameState.comboStreak > 0 && (
+            <div className="text-center flex-1">
+              <div className="text-xs text-neon-yellow">COMBO x{gameState.comboMultiplier.toFixed(1)}</div>
+              <div className="text-lg font-bold text-neon-yellow">{gameState.comboStreak}</div>
+            </div>
+          )}
         </div>
 
         {/* Progress Bar */}
