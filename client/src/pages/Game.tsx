@@ -291,8 +291,10 @@ export default function Game() {
 
     const handleMouseDown = (e: MouseEvent | TouchEvent) => {
       const rect = canvas.getBoundingClientRect();
-      const x = (e instanceof TouchEvent ? e.touches[0].clientX : e.clientX) - rect.left;
-      const y = (e instanceof TouchEvent ? e.touches[0].clientY : e.clientY) - rect.top;
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = ((e instanceof TouchEvent ? e.touches[0].clientX : e.clientX) - rect.left) * scaleX;
+      const y = ((e instanceof TouchEvent ? e.touches[0].clientY : e.clientY) - rect.top) * scaleY;
 
       for (let bubble of gameRef.current.bubbles) {
         if (bubble.matched) continue;
@@ -312,8 +314,10 @@ export default function Game() {
       if (!gameRef.current.draggedBubble) return;
 
       const rect = canvas.getBoundingClientRect();
-      const x = (e instanceof TouchEvent ? e.touches[0].clientX : e.clientX) - rect.left;
-      const y = (e instanceof TouchEvent ? e.touches[0].clientY : e.clientY) - rect.top;
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const x = ((e instanceof TouchEvent ? e.touches[0].clientX : e.clientX) - rect.left) * scaleX;
+      const y = ((e instanceof TouchEvent ? e.touches[0].clientY : e.clientY) - rect.top) * scaleY;
 
       gameRef.current.draggedBubble.x = x - gameRef.current.dragOffsetX;
       gameRef.current.draggedBubble.y = y - gameRef.current.dragOffsetY;
