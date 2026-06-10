@@ -16,6 +16,8 @@ interface Bubble {
   popAnimation: number;
   isPowerUp?: boolean;
   powerUpType?: 'bomb' | 'lightning' | 'freeze';
+  isAnchored?: boolean;
+  anchorTimeLeft?: number;
 }
 
 interface PopParticle {
@@ -115,6 +117,8 @@ export default function Game() {
           matched: false,
           isDragging: false,
           popAnimation: 0,
+          isAnchored: false,
+          anchorTimeLeft: 0,
         });
       }
       gameRef.current.bubbles = bubbles;
@@ -180,7 +184,16 @@ export default function Game() {
       // Physics update
       if (!gameRef.current.isPaused && gameRef.current.freezeTimeLeft <= 0) {
         gameRef.current.bubbles.forEach(bubble => {
-          if (!bubble.isDragging && !bubble.matched) {
+          // Update anchor timer
+          if (bubble.isAnchored && bubble.anchorTimeLeft !== undefined) {
+            bubble.anchorTimeLeft -= 16; // ~60fps
+            if (bubble.anchorTimeLeft <= 0) {
+              bubble.isAnchored = false;
+              bubble.anchorTimeLeft = 0;
+            }
+          }
+
+          if (!bubble.isDragging && !bubble.matched && !bubble.isAnchored) {
             bubble.x += bubble.vx;
             bubble.y += bubble.vy;
 
@@ -308,7 +321,10 @@ export default function Game() {
 
     const handleMouseUp = () => {
       if (gameRef.current.draggedBubble) {
+        // Anchor the bubble in place for 3 seconds
         gameRef.current.draggedBubble.isDragging = false;
+        gameRef.current.draggedBubble.isAnchored = true;
+        gameRef.current.draggedBubble.anchorTimeLeft = 3000; // 3 seconds in milliseconds
         gameRef.current.draggedBubble = null;
       }
     };
@@ -365,6 +381,8 @@ export default function Game() {
       popAnimation: 0,
       isPowerUp: true,
       powerUpType: type,
+      isAnchored: false,
+      anchorTimeLeft: 0,
     });
   };
 
@@ -517,6 +535,8 @@ export default function Game() {
           matched: false,
           isDragging: false,
           popAnimation: 0,
+          isAnchored: false,
+          anchorTimeLeft: 0,
         };
         gameRef.current.bubbles[index] = newBubble;
       }
