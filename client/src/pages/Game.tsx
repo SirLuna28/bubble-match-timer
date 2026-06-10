@@ -104,9 +104,9 @@ export default function Game() {
           x: Math.random() * (CANVAS_WIDTH - 80) + 40,
           y: Math.random() * (CANVAS_HEIGHT - 150) + 40,
           color: BUBBLE_COLORS[Math.floor(Math.random() * BUBBLE_COLORS.length)],
-          radius: 25,
-          vx: (Math.random() - 0.5) * 3,
-          vy: (Math.random() - 0.5) * 3,
+          radius: 25 - Math.min(gameRef.current.level * 1, 5),
+          vx: (Math.random() - 0.5) * 3 * (1 + gameRef.current.level * 0.15),
+          vy: (Math.random() - 0.5) * 3 * (1 + gameRef.current.level * 0.15),
           matched: false,
           isDragging: false,
           popAnimation: 0,
@@ -136,7 +136,16 @@ export default function Game() {
       if (gameRef.current.score >= gameState.goalScore && gameRef.current.timeLeft > 0) {
         gameRef.current.levelComplete = true;
         gameRef.current.isPaused = true;
-        setGameState(prev => ({ ...prev, levelComplete: true, isPaused: true }));
+        // Advance to next level with increased difficulty
+        gameRef.current.level += 1;
+        gameRef.current.score = 0;
+        gameRef.current.timeLeft = gameState.timeLeft; // Reset timer
+        // Increase bubble speed for next level
+        gameRef.current.bubbles.forEach(bubble => {
+          bubble.vx *= (1 + 0.15);
+          bubble.vy *= (1 + 0.15);
+        });
+        setGameState(prev => ({ ...prev, levelComplete: true, isPaused: true, level: gameRef.current.level }));
         return;
       }
 
@@ -268,7 +277,8 @@ export default function Game() {
       for (let bubble of gameRef.current.bubbles) {
         if (bubble.matched) continue;
         const dist = Math.sqrt((bubble.x - x) ** 2 + (bubble.y - y) ** 2);
-        if (dist < bubble.radius) {
+        // Increased drag radius by 1.5x for easier grabbing
+        if (dist < bubble.radius * 1.5) {
           gameRef.current.draggedBubble = bubble;
           gameRef.current.dragOffsetX = x - bubble.x;
           gameRef.current.dragOffsetY = y - bubble.y;
