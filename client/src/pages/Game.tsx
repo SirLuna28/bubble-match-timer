@@ -556,6 +556,53 @@ export default function Game() {
     navigate('/');
   };
 
+  const handleNextLevel = () => {
+    // Reset game state for next level
+    gameRef.current.bubbles = [];
+    gameRef.current.particles = [];
+    gameRef.current.score = 0;
+    gameRef.current.timeLeft = gameState.timeLeft;
+    gameRef.current.isPaused = false;
+    gameRef.current.gameOver = false;
+    gameRef.current.levelComplete = false;
+    gameRef.current.comboStreak = 0;
+    gameRef.current.lastMatchTime = 0;
+    gameRef.current.comboMultiplier = 1;
+    gameRef.current.freezeTimeLeft = 0;
+
+    // Spawn bubbles for next level with increased count and speed
+    const bubbleCount = gameConfig.bubbleCount + gameRef.current.level;
+    for (let i = 0; i < bubbleCount; i++) {
+      const speedMultiplier = 1 + gameRef.current.level * 0.15;
+      const bubble: Bubble = {
+        id: `bubble-${i}`,
+        x: Math.random() * (CANVAS_WIDTH - 60) + 30,
+        y: Math.random() * (CANVAS_HEIGHT - 200) + 50,
+        color: BUBBLE_COLORS[Math.floor(Math.random() * BUBBLE_COLORS.length)],
+        radius: 15,
+        vx: (Math.random() - 0.5) * 4 * speedMultiplier,
+        vy: (Math.random() - 0.5) * 4 * speedMultiplier,
+        matched: false,
+        isDragging: false,
+        popAnimation: 0,
+        isAnchored: false,
+        anchorTimeLeft: 0,
+      };
+      gameRef.current.bubbles.push(bubble);
+    }
+
+    setGameState(prev => ({
+      ...prev,
+      score: 0,
+      level: gameRef.current.level,
+      timeLeft: gameState.timeLeft,
+      levelComplete: false,
+      isPaused: false,
+      comboStreak: 0,
+      comboMultiplier: 1,
+    }));
+  };
+
   const getTimerColor = () => {
     if (gameState.timeLeft > 30) return 'text-neon-green';
     if (gameState.timeLeft > 10) return 'text-neon-orange';
@@ -646,12 +693,25 @@ export default function Game() {
                 {gameState.levelComplete ? '🎉 Level Complete!' : '💀 Game Over'}
               </h2>
               <p className="text-neon-green mb-4">Final Score: {gameState.score}</p>
-              <Button
-                onClick={handleHome}
-                className="bg-neon-cyan hover:bg-neon-cyan/80 text-slate-900 font-bold"
-              >
-                Back to Menu
-              </Button>
+              {gameState.levelComplete && (
+                <p className="text-neon-pink mb-4 text-lg font-bold">Level {gameState.level} Completed!</p>
+              )}
+              <div className="flex gap-2 justify-center flex-wrap">
+                {gameState.levelComplete && (
+                  <Button
+                    onClick={handleNextLevel}
+                    className="bg-neon-green hover:bg-neon-green/80 text-slate-900 font-bold"
+                  >
+                    Next Level →
+                  </Button>
+                )}
+                <Button
+                  onClick={handleHome}
+                  className="bg-neon-cyan hover:bg-neon-cyan/80 text-slate-900 font-bold"
+                >
+                  Back to Menu
+                </Button>
+              </div>
             </div>
           </div>
         )}
