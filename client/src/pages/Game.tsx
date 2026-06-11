@@ -111,7 +111,8 @@ export default function Game() {
           x: Math.random() * (CANVAS_WIDTH - 80) + 40,
           y: Math.random() * (CANVAS_HEIGHT - 150) + 40,
           color: BUBBLE_COLORS[Math.floor(Math.random() * BUBBLE_COLORS.length)],
-          radius: 25 - Math.min(gameRef.current.level * 1, 5),
+          // Bubbles stay at full size until level 80, then shrink
+          radius: gameRef.current.level >= 80 ? Math.max(15, 25 - (gameRef.current.level - 80) * 0.3) : 25,
           vx: (Math.random() - 0.5) * 3 * (1 + gameRef.current.level * 0.15),
           vy: (Math.random() - 0.5) * 3 * (1 + gameRef.current.level * 0.15),
           matched: false,
@@ -587,7 +588,8 @@ export default function Game() {
     const bubbleCount = gameConfig.bubbleCount + gameRef.current.level;
     for (let i = 0; i < bubbleCount; i++) {
       const speedMultiplier = 1 + gameRef.current.level * 0.15;
-      const radiusMultiplier = Math.max(0.6, 1 - gameRef.current.level * 0.1); // Shrink by 10% per level, min 60% of original
+      // Bubbles stay at full size until level 80, then shrink
+      const radiusMultiplier = gameRef.current.level >= 80 ? Math.max(0.6, 1 - (gameRef.current.level - 80) * 0.05) : 1;
       const bubble: Bubble = {
         id: `bubble-${i}`,
         x: Math.random() * (CANVAS_WIDTH - 60) + 30,
