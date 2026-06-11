@@ -351,8 +351,20 @@ export default function Game() {
   }, []);
 
   const createPopParticles = (bubble: Bubble, matchSize: number) => {
-    const particleCount = Math.min(50, 8 + matchSize * 3);
-    const speed = 2 + matchSize * 0.5;
+    // Enhanced particle effects for larger matches
+    let particleCount = 8 + matchSize * 3;
+    let speed = 2 + matchSize * 0.5;
+    
+    // Max explosion for 5+ bubble matches
+    if (matchSize >= 5) {
+      particleCount = 80; // Maximum particles
+      speed = 4 + matchSize * 0.8; // Faster particle speed
+    } else if (matchSize === 4) {
+      particleCount = 50; // Large explosion
+      speed = 3.5 + matchSize * 0.6;
+    }
+    
+    particleCount = Math.min(particleCount, 100);
     
     for (let i = 0; i < particleCount; i++) {
       const angle = (i / particleCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
@@ -456,9 +468,10 @@ export default function Game() {
         const matchSize = connected.size;
         let points = 0;
         if (matchSize === 3) points = 30;
-        else if (matchSize === 4) points = 60;
-        else if (matchSize === 5) points = 100;
-        else points = 50 * matchSize;
+        else if (matchSize === 4) points = 80; // Increased from 60
+        else if (matchSize === 5) points = 150; // Increased from 100
+        else if (matchSize === 6) points = 250; // 6 bubbles
+        else points = 50 * matchSize; // Scale for 7+
         
         connected.forEach(b => {
           b.matched = true;
