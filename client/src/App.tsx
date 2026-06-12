@@ -4,17 +4,20 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+// Menu component is no longer used - difficulty selection removed
 import Home from "./pages/Home";
-import Menu from "./pages/Menu";
+import Intro from "./pages/Intro";
 import Game from "./pages/Game";
+import Settings from "./pages/Settings";
 
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/menu"} component={Menu} />
-      <Route path={"/game"} component={Game} />
-      <Route path={"/404"} component={NotFound} />
+      <Route path="/" component={Home} />
+      <Route path="/intro" component={Intro} />
+      <Route path="/game" component={Game} />
+      <Route path="/settings" component={Settings} />
+      <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>

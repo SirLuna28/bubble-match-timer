@@ -7,7 +7,11 @@ export default function Home() {
   const [, navigate] = useLocation();
 
   const handlePlayClick = () => {
-    navigate('/menu');
+    navigate('/intro');
+  };
+
+  const handleSettingsClick = () => {
+    navigate('/settings');
   };
 
   return (
@@ -45,11 +49,11 @@ export default function Home() {
           Cosmic Puzzle Challenge
         </p>
 
-        {/* Play Button */}
+        {/* Play Button - Auto-starts intro */}
         <Button
           onClick={handlePlayClick}
           size="lg"
-          className="mb-6 bg-gradient-to-r from-neon-cyan to-neon-green hover:from-neon-cyan/80 hover:to-neon-green/80 text-background font-bold text-lg px-12 py-6 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95"
+          className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-black hover:opacity-90 font-bold text-lg px-8 animate-pulse"
         >
           <Play className="w-5 h-5 mr-2" />
           Play Game
@@ -57,6 +61,7 @@ export default function Home() {
 
         {/* Settings Button */}
         <Button
+          onClick={handleSettingsClick}
           variant="outline"
           size="sm"
           className="border-neon-cyan/50 text-neon-cyan hover:bg-neon-cyan/10"
