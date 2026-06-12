@@ -177,7 +177,7 @@ export default function Game() {
         // Advance to next level with increased difficulty
         gameRef.current.level += 1;
         gameRef.current.score = 0;
-        gameRef.current.timeLeft = gameState.timeLeft; // Reset timer
+        gameRef.current.timeLeft = gameConfig.timeLimit; // Reset timer to full time limit
         // Increase bubble speed for next level
         gameRef.current.bubbles.forEach(bubble => {
           bubble.vx *= (1 + 0.15);
@@ -628,7 +628,7 @@ export default function Game() {
     gameRef.current.bubbles = [];
     gameRef.current.particles = [];
     gameRef.current.score = 0;
-    gameRef.current.timeLeft = gameState.timeLeft;
+    gameRef.current.timeLeft = gameConfig.timeLimit; // Reset to full time limit
     gameRef.current.isPaused = false;
     gameRef.current.gameOver = false;
     gameRef.current.levelComplete = false;
@@ -664,7 +664,7 @@ export default function Game() {
       ...prev,
       score: 0,
       level: gameRef.current.level,
-      timeLeft: gameState.timeLeft,
+      timeLeft: gameConfig.timeLimit, // Reset to full time limit
       levelComplete: false,
       isPaused: false,
       comboStreak: 0,
