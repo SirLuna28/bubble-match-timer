@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Pause, Home } from 'lucide-react';
 import { useLocation } from 'wouter';
@@ -13,7 +13,6 @@ import { Leaderboard } from '@/components/Leaderboard';
 import { InventoryPanel } from '@/components/InventoryPanel';
 import { RewardChoiceModal } from '@/components/RewardChoiceModal';
 import { loadInventory, usePowerUp, addPowerUp, InventoryState } from '@/lib/inventory';
-import { getLevelConfig, getDifficultyDescription, isMilestoneLevel, getMilestoneMessage } from '@/lib/levelProgression';
 
 interface Bubble {
   id: string;
@@ -49,8 +48,6 @@ interface GameConfig {
   difficulty: 'easy' | 'normal' | 'hard';
   goalScore: number;
   timeLimit: number;
-  bubbleRadius: number;
-  bubbleSpeed: number;
   bubbleCount: number;
 }
 
@@ -92,10 +89,8 @@ export default function Game() {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [gameConfig, setGameConfig] = useState<GameConfig>({
     difficulty: 'normal',
-    goalScore: 300,
+    goalScore: 600,
     timeLimit: 60,
-    bubbleRadius: 25,
-    bubbleSpeed: 1.0,
     bubbleCount: 15,
   });
 
@@ -127,36 +122,17 @@ export default function Game() {
     levelStartTime: 0,
   });
 
-  const initialLevelConfig = getLevelConfig(1);
   const [gameState, setGameState] = useState({
     score: 0,
     level: 1,
     timeLeft: 60,
-    goalScore: initialLevelConfig.goalScore,
+    goalScore: 600,
     isPaused: false,
     gameOver: false,
     levelComplete: false,
     comboStreak: 0,
     comboMultiplier: 1,
   });
-
-  // Update gameConfig when level changes
-  useEffect(() => {
-    const levelConfig = getLevelConfig(gameState.level);
-    setGameConfig({
-      difficulty: 'normal',
-      goalScore: levelConfig.goalScore,
-      timeLimit: 60,
-      bubbleRadius: levelConfig.bubbleRadius,
-      bubbleSpeed: levelConfig.bubbleSpeed,
-      bubbleCount: levelConfig.bubbleCount,
-    });
-    setGameState(prev => ({
-      ...prev,
-      goalScore: levelConfig.goalScore,
-    }));
-    setCurrentBackground(getBackgroundForLevel(gameState.level));
-  }, [gameState.level]);
 
   const [hasUnsavedProgress, setHasUnsavedProgress] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
@@ -184,18 +160,16 @@ export default function Game() {
 
       // Initialize bubbles based on config
       const bubbles: Bubble[] = [];
-      const levelConfig = getLevelConfig(gameRef.current.level);
       for (let i = 0; i < config.bubbleCount; i++) {
         bubbles.push({
           id: `bubble-${i}`,
           x: Math.random() * (CANVAS_WIDTH - 80) + 40,
           y: Math.random() * (CANVAS_HEIGHT - 150) + 40,
           color: BUBBLE_COLORS[Math.floor(Math.random() * BUBBLE_COLORS.length)],
-          // Use dynamic radius from level config
-          radius: config.bubbleRadius,
-          // Use dynamic speed from level config
-          vx: (Math.random() - 0.5) * 3 * config.bubbleSpeed,
-          vy: (Math.random() - 0.5) * 3 * config.bubbleSpeed,
+          // Bubbles stay at full size until level 80, then shrink
+          radius: gameRef.current.level >= 80 ? Math.max(15, 25 - (gameRef.current.level - 80) * 0.3) : 25,
+          vx: (Math.random() - 0.5) * 3 * (1 + gameRef.current.level * 0.15),
+          vy: (Math.random() - 0.5) * 3 * (1 + gameRef.current.level * 0.15),
           matched: false,
           isDragging: false,
           popAnimation: 0,
@@ -207,7 +181,7 @@ export default function Game() {
       gameRef.current.levelStartTime = Date.now(); // Set level start time for match delay
       setGameState({
         score: 0,
-        level: gameRef.current.level,
+        level: 1,
         timeLeft: config.timeLimit,
         goalScore: config.goalScore,
         isPaused: false,
@@ -1021,19 +995,6 @@ export default function Game() {
     // Increment level
     gameRef.current.level += 1;
     
-    // Calculate goal based on level (easier early, harder later)
-    let newGoal = 300; // Base goal for level 1
-    if (gameRef.current.level <= 5) {
-      newGoal = 300 + (gameRef.current.level - 1) * 50; // Levels 1-5: 300, 350, 400, 450, 500
-    } else if (gameRef.current.level <= 10) {
-      newGoal = 550 + (gameRef.current.level - 6) * 100; // Levels 6-10: 550, 650, 750, 850, 950
-    } else {
-      newGoal = 1450 + (gameRef.current.level - 11) * 150; // Levels 11+: 1450, 1600, 1750...
-    }
-    
-    // Update game config with new goal
-    setGameConfig(prev => ({ ...prev, goalScore: newGoal }));
-    
     // Reset game state for next level
     gameRef.current.bubbles = [];
     gameRef.current.particles = [];
@@ -1081,16 +1042,10 @@ export default function Game() {
       isPaused: false,
       comboStreak: 0,
       comboMultiplier: 1,
-      goalScore: newGoal,
     }));
 
     // Update background every 5 levels
     setCurrentBackground(getBackgroundForLevel(gameRef.current.level));
-    
-    // Reset ad usage for new level
-    setHasUsedExtraTimeAd(false);
-    setHasUsedReplayAd(false);
-    setShowReplayAdOption(false);
   };
 
   const getTimerColor = () => {
