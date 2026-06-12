@@ -5,6 +5,7 @@ import { useLocation } from 'wouter';
 import { useAudioContext } from '@/hooks/useAudioContext';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { saveGameProgress, loadGameProgress, clearGameProgress, hasGameProgress } from '@/lib/gameSave';
+import { createPowerUpParticles, drawPowerUpParticles, createScreenFlash, drawScreenFlash, playPowerUpSound, createBombShockwave, drawBombShockwave, createLightningBolt, drawLightningBolt } from '@/lib/powerupEffects';
 
 interface Bubble {
   id: string;
@@ -99,6 +100,10 @@ export default function Game() {
     comboStreak: 0,
     lastMatchTime: 0,
     comboMultiplier: 1,
+    powerUpParticles: [] as any[],
+    screenFlash: null as any,
+    bombShockwaves: [] as any[],
+    lightningBolts: [] as any[],
   });
 
   const [gameState, setGameState] = useState({
@@ -302,6 +307,27 @@ export default function Game() {
         ctx.fill();
       });
 
+      // Draw power-up effects
+      // Draw power-up particles
+      drawPowerUpParticles(ctx, gameRef.current.powerUpParticles);
+      gameRef.current.powerUpParticles = gameRef.current.powerUpParticles.filter(p => p.life > 0);
+
+      // Draw screen flash
+      if (gameRef.current.screenFlash) {
+        const stillActive = drawScreenFlash(ctx, gameRef.current.screenFlash, CANVAS_WIDTH, CANVAS_HEIGHT);
+        if (!stillActive) gameRef.current.screenFlash = null;
+      }
+
+      // Draw bomb shockwaves
+      gameRef.current.bombShockwaves = gameRef.current.bombShockwaves.filter(shockwave => {
+        return drawBombShockwave(ctx, shockwave);
+      });
+
+      // Draw lightning bolts
+      gameRef.current.lightningBolts = gameRef.current.lightningBolts.filter(bolt => {
+        return drawLightningBolt(ctx, bolt);
+      });
+
       gameRef.current.animationId = requestAnimationFrame(animate);
     };
 
@@ -429,9 +455,23 @@ export default function Game() {
   };
 
   const activatePowerUp = (powerUp: Bubble) => {
+    // Play power-up sound
+    playPowerUpSound(powerUp.powerUpType as any);
+    
+    // Create screen flash effect
+    gameRef.current.screenFlash = createScreenFlash(powerUp.powerUpType as any, 300);
+    
+    // Create particle burst
+    const particles = createPowerUpParticles(powerUp.powerUpType as any, powerUp.x, powerUp.y, 16);
+    gameRef.current.powerUpParticles.push(...particles);
+    
     if (powerUp.powerUpType === 'bomb') {
       // Bomb: clear all bubbles in radius
       const BOMB_RADIUS = 100;
+      
+      // Create bomb shockwave effect
+      gameRef.current.bombShockwaves.push(createBombShockwave(powerUp.x, powerUp.y, BOMB_RADIUS));
+      
       gameRef.current.bubbles.forEach(bubble => {
         if (bubble.matched || bubble === powerUp) return;
         const dist = Math.sqrt((bubble.x - powerUp.x) ** 2 + (bubble.y - powerUp.y) ** 2);
@@ -445,6 +485,13 @@ export default function Game() {
     } else if (powerUp.powerUpType === 'lightning') {
       // Lightning: clear all bubbles of same color
       const targetColor = powerUp.color;
+      
+      // Create lightning bolts to random matching bubbles
+      const matchingBubbles = gameRef.current.bubbles.filter(b => !b.matched && b !== powerUp && b.color === targetColor);
+      matchingBubbles.slice(0, 3).forEach(bubble => {
+        gameRef.current.lightningBolts.push(createLightningBolt(powerUp.x, powerUp.y, bubble.x, bubble.y));
+      });
+      
       gameRef.current.bubbles.forEach(bubble => {
         if (bubble.matched || bubble === powerUp) return;
         if (bubble.color === targetColor) {
