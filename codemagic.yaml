@@ -7,7 +7,7 @@ workflows:
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_id: com.loujjstudio.bubblematchtime
+        bundle_identifier: com.loujjstudio.bubblematchtime
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
