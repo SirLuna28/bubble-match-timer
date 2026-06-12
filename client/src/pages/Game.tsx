@@ -589,13 +589,13 @@ export default function Game() {
     for (let i = 0; i < bubbleCount; i++) {
       const speedMultiplier = 1 + gameRef.current.level * 0.15;
       // Bubbles stay at full size until level 80, then shrink
-      const radiusMultiplier = gameRef.current.level >= 80 ? Math.max(0.6, 1 - (gameRef.current.level - 80) * 0.05) : 1;
+      const radius = gameRef.current.level >= 80 ? Math.max(15, 25 - (gameRef.current.level - 80) * 0.3) : 25;
       const bubble: Bubble = {
         id: `bubble-${i}`,
         x: Math.random() * (CANVAS_WIDTH - 60) + 30,
         y: Math.random() * (CANVAS_HEIGHT - 200) + 50,
         color: BUBBLE_COLORS[Math.floor(Math.random() * BUBBLE_COLORS.length)],
-        radius: 15 * radiusMultiplier,
+        radius: radius,
         vx: (Math.random() - 0.5) * 4 * speedMultiplier,
         vy: (Math.random() - 0.5) * 4 * speedMultiplier,
         matched: false,
