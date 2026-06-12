@@ -6,6 +6,7 @@ import { useAudioContext } from '@/hooks/useAudioContext';
 import ConfirmDialog from '@/components/ConfirmDialog';
 import { saveGameProgress, loadGameProgress, clearGameProgress, hasGameProgress } from '@/lib/gameSave';
 import { createPowerUpParticles, drawPowerUpParticles, createScreenFlash, drawScreenFlash, playPowerUpSound, createBombShockwave, drawBombShockwave, createLightningBolt, drawLightningBolt } from '@/lib/powerupEffects';
+import { createMatchParticles, createScorePopup, updateMatchParticles, updateScorePopups, drawMatchParticles, drawScorePopups, playMatchSound, MatchParticle, ScorePopup } from '@/lib/matchFeedback';
 
 interface Bubble {
   id: string;
@@ -104,6 +105,8 @@ export default function Game() {
     screenFlash: null as any,
     bombShockwaves: [] as any[],
     lightningBolts: [] as any[],
+    matchParticles: [] as MatchParticle[],
+    scorePopups: [] as ScorePopup[],
   });
 
   const [gameState, setGameState] = useState({
@@ -255,6 +258,12 @@ export default function Game() {
         }
       });
 
+      // Update match particles
+      gameRef.current.matchParticles = updateMatchParticles(gameRef.current.matchParticles, 0.016);
+
+      // Update score popups
+      gameRef.current.scorePopups = updateScorePopups(gameRef.current.scorePopups, 0.016);
+
       // Draw - Clear canvas with transparency to show background
       ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
@@ -321,6 +330,12 @@ export default function Game() {
       gameRef.current.lightningBolts = gameRef.current.lightningBolts.filter(bolt => {
         return drawLightningBolt(ctx, bolt);
       });
+
+      // Draw match particles
+      drawMatchParticles(ctx, gameRef.current.matchParticles);
+
+      // Draw score popups
+      drawScorePopups(ctx, gameRef.current.scorePopups);
 
       gameRef.current.animationId = requestAnimationFrame(animate);
     };
@@ -540,10 +555,15 @@ export default function Game() {
         else if (matchSize === 6) points = 250; // 6 bubbles
         else points = 50 * matchSize; // Scale for 7+
         
+        // Play match sound
+        playMatchSound('/manus-storage/bubble-match-sound_3ed93266.wav', 0.6);
+        
         connected.forEach(b => {
           b.matched = true;
           b.popAnimation = 1 + (matchSize - 3) * 0.2;
           createPopParticles(b, matchSize);
+          // Create match particles
+          gameRef.current.matchParticles.push(...createMatchParticles(b.x, b.y, b.color, 6));
         });
 
         // Spawn power-up if match is 5+ bubbles
@@ -568,6 +588,12 @@ export default function Game() {
         const multipliedPoints = Math.floor(points * gameRef.current.comboMultiplier);
         
         gameRef.current.score += multipliedPoints;
+        
+        // Create score popup at center of match
+        const centerX = Array.from(connected).reduce((sum, b) => sum + b.x, 0) / connected.size;
+        const centerY = Array.from(connected).reduce((sum, b) => sum + b.y, 0) / connected.size;
+        gameRef.current.scorePopups.push(createScorePopup(centerX, centerY, multipliedPoints));
+        
         setGameState(prev => ({ ...prev, score: gameRef.current.score, comboStreak: gameRef.current.comboStreak, comboMultiplier: gameRef.current.comboMultiplier }));
       }
     }
