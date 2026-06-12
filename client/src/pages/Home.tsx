@@ -1,10 +1,16 @@
-import React from 'react';
+import { Play, Settings } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
-import { Play, Settings } from 'lucide-react';
+import { useAudioContext } from '@/hooks/useAudioContext';
+import { useEffect } from 'react';
 
 export default function Home() {
   const [, navigate] = useLocation();
+  const { play: playMusic } = useAudioContext();
+
+  useEffect(() => {
+    playMusic();
+  }, [playMusic]);
 
   const handlePlayClick = () => {
     navigate('/intro');

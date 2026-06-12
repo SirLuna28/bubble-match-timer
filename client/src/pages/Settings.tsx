@@ -1,13 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Volume2, VolumeX, HelpCircle } from 'lucide-react';
+import { useAudioContext } from '@/hooks/useAudioContext';
 
 export default function Settings() {
   const [, navigate] = useLocation();
+  const { play: playMusic } = useAudioContext();
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [hapticEnabled, setHapticEnabled] = useState(true);
   const [showInstructions, setShowInstructions] = useState(false);
+
+  useEffect(() => {
+    playMusic();
+  }, [playMusic]);
 
   const handleBack = () => {
     navigate('/');

@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Pause, Home } from 'lucide-react';
 import { useLocation } from 'wouter';
+import { useAudioContext } from '@/hooks/useAudioContext';
 
 interface Bubble {
   id: string;
@@ -53,9 +54,24 @@ const POWER_UP_COLORS = {
 const CANVAS_WIDTH = 360;
 const CANVAS_HEIGHT = 640;
 
+const LEVEL_BACKGROUNDS = [
+  'https://d2xsxph8kpxj0f.cloudfront.net/310519663707547870/WBKamk4m2zg6U4yPd2Ftwq/level-bg-1-dp9CL7UNVYwDwJ9xRcYt6p.webp',
+  'https://d2xsxph8kpxj0f.cloudfront.net/310519663707547870/WBKamk4m2zg6U4yPd2Ftwq/level-bg-2-isiZ4VuDAaAQM8jZH22Z9P.webp',
+  'https://d2xsxph8kpxj0f.cloudfront.net/310519663707547870/WBKamk4m2zg6U4yPd2Ftwq/level-bg-3-66JaVg5Wbwf648oHNGsQqx.webp',
+  'https://d2xsxph8kpxj0f.cloudfront.net/310519663707547870/WBKamk4m2zg6U4yPd2Ftwq/level-bg-4-74VTmsCh7EHpsVhZ3ix7TQ.webp',
+  'https://d2xsxph8kpxj0f.cloudfront.net/310519663707547870/WBKamk4m2zg6U4yPd2Ftwq/level-bg-5-cEQincwAQgHB2oLbriJoC7.webp',
+];
+
+const getBackgroundForLevel = (level: number): string => {
+  const bgIndex = Math.min(Math.floor((level - 1) / 5), LEVEL_BACKGROUNDS.length - 1);
+  return LEVEL_BACKGROUNDS[bgIndex];
+};
+
 export default function Game() {
   const [, navigate] = useLocation();
+  const { play: playMusic } = useAudioContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [currentBackground, setCurrentBackground] = useState(getBackgroundForLevel(1));
   const [gameConfig, setGameConfig] = useState<GameConfig>({
     difficulty: 'normal',
     goalScore: 600,
@@ -93,6 +109,11 @@ export default function Game() {
     comboStreak: 0,
     comboMultiplier: 1,
   });
+
+  // Start background music on component mount
+  useEffect(() => {
+    playMusic();
+  }, [playMusic]);
 
   // Load game config from sessionStorage
   useEffect(() => {
@@ -617,6 +638,9 @@ export default function Game() {
       comboStreak: 0,
       comboMultiplier: 1,
     }));
+
+    // Update background every 5 levels
+    setCurrentBackground(getBackgroundForLevel(gameRef.current.level));
   };
 
   const getTimerColor = () => {
@@ -671,12 +695,21 @@ export default function Game() {
         </div>
 
         {/* Canvas */}
-        <div className="flex-1 relative overflow-hidden bg-gradient-to-b from-slate-900 to-slate-950">
+        <div 
+          className="flex-1 relative overflow-hidden bg-cover bg-center"
+          style={{
+            backgroundImage: `url('${currentBackground}')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          {/* Overlay for better visibility */}
+          <div className="absolute inset-0 bg-black/30 pointer-events-none" />
           <canvas
             ref={canvasRef}
             width={CANVAS_WIDTH}
             height={CANVAS_HEIGHT}
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain relative z-10"
             style={{ display: 'block', width: '100%', height: '100%' }}
           />
         </div>
