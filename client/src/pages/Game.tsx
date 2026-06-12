@@ -229,14 +229,15 @@ export default function Game() {
             bubble.x += bubble.vx;
             bubble.y += bubble.vy;
 
-            // Bounce off walls
-            if (bubble.x - bubble.radius < 0 || bubble.x + bubble.radius > CANVAS_WIDTH) {
+            // Bounce off walls with stricter constraints
+            const BOUNDARY_PADDING = 3;
+            if (bubble.x - bubble.radius < BOUNDARY_PADDING || bubble.x + bubble.radius > CANVAS_WIDTH - BOUNDARY_PADDING) {
               bubble.vx *= -0.8;
-              bubble.x = Math.max(bubble.radius, Math.min(CANVAS_WIDTH - bubble.radius, bubble.x));
+              bubble.x = Math.max(bubble.radius + BOUNDARY_PADDING, Math.min(CANVAS_WIDTH - bubble.radius - BOUNDARY_PADDING, bubble.x));
             }
-            if (bubble.y - bubble.radius < 0 || bubble.y + bubble.radius > CANVAS_HEIGHT) {
+            if (bubble.y - bubble.radius < BOUNDARY_PADDING || bubble.y + bubble.radius > CANVAS_HEIGHT - BOUNDARY_PADDING) {
               bubble.vy *= -0.8;
-              bubble.y = Math.max(bubble.radius, Math.min(CANVAS_HEIGHT - bubble.radius, bubble.y));
+              bubble.y = Math.max(bubble.radius + BOUNDARY_PADDING, Math.min(CANVAS_HEIGHT - bubble.radius - BOUNDARY_PADDING, bubble.y));
             }
           }
         });
@@ -265,6 +266,11 @@ export default function Game() {
 
       // Draw - Clear canvas with transparency to show background
       ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+      // Draw canvas border to show playable area
+      ctx.strokeStyle = 'rgba(0, 255, 136, 0.2)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
       // Draw bubbles
       gameRef.current.bubbles.forEach(bubble => {
