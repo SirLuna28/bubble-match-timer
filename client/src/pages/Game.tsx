@@ -10,6 +10,9 @@ import { createMatchParticles, createScorePopup, updateMatchParticles, updateSco
 import { triggerHapticFeedback } from '@/lib/hapticFeedback';
 import { createCosmicExplosion, updateCosmicParticles, drawCosmicParticles, CosmicParticle } from '@/lib/cosmicExplosion';
 import { Leaderboard } from '@/components/Leaderboard';
+import { InventoryPanel } from '@/components/InventoryPanel';
+import { RewardChoiceModal } from '@/components/RewardChoiceModal';
+import { loadInventory, usePowerUp, addPowerUp, InventoryState } from '@/lib/inventory';
 
 interface Bubble {
   id: string;
@@ -26,6 +29,7 @@ interface Bubble {
   powerUpType?: 'bomb' | 'lightning' | 'freeze';
   isAnchored?: boolean;
   anchorTimeLeft?: number;
+  isStickingBubble?: boolean;
 }
 
 interface PopParticle {
@@ -129,6 +133,10 @@ export default function Game() {
 
   const [hasUnsavedProgress, setHasUnsavedProgress] = useState(false);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showRewardModal, setShowRewardModal] = useState(false);
+  const [inventory, setInventory] = useState<InventoryState>(loadInventory());
+  const [timeSlowActive, setTimeSlowActive] = useState(false);
+  const [timeSlowTimeLeft, setTimeSlowTimeLeft] = useState(0);
 
   // Start background music on component mount
   useEffect(() => {
@@ -228,8 +236,10 @@ export default function Game() {
           }
 
           if (!bubble.isDragging && !bubble.matched && !bubble.isAnchored) {
-            bubble.x += bubble.vx;
-            bubble.y += bubble.vy;
+            // Apply time-slow effect (reduce velocity by 70%)
+            const velocityMultiplier = timeSlowActive ? 0.3 : 1;
+            bubble.x += bubble.vx * velocityMultiplier;
+            bubble.y += bubble.vy * velocityMultiplier;
 
             // Bounce off walls with stricter constraints
             const BOUNDARY_PADDING = 3;
@@ -245,6 +255,13 @@ export default function Game() {
         });
       } else if (gameRef.current.freezeTimeLeft > 0) {
         gameRef.current.freezeTimeLeft -= 16; // ~60fps
+      }
+
+      // Update time-slow effect
+      if (timeSlowActive && timeSlowTimeLeft > 0) {
+        setTimeSlowTimeLeft(prev => Math.max(0, prev - 16));
+      } else if (timeSlowTimeLeft <= 0 && timeSlowActive) {
+        setTimeSlowActive(false);
       }
 
       // Check for matches
@@ -351,6 +368,21 @@ export default function Game() {
 
       // Draw score popups
       drawScorePopups(ctx, gameRef.current.scorePopups);
+
+      // Draw time-slow indicator
+      if (timeSlowActive && timeSlowTimeLeft > 0) {
+        const timeLeftSeconds = Math.ceil(timeSlowTimeLeft / 1000);
+        // Draw semi-transparent overlay
+        ctx.fillStyle = 'rgba(0, 191, 255, 0.1)';
+        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        
+        // Draw timer text
+        ctx.fillStyle = '#00BFFF';
+        ctx.font = 'bold 32px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`⏳ ${timeLeftSeconds}s`, CANVAS_WIDTH / 2, 50);
+      }
 
       gameRef.current.animationId = requestAnimationFrame(animate);
     };
@@ -558,7 +590,11 @@ export default function Game() {
 
         for (let j = 0; j < bubbles.length; j++) {
           const other = bubbles[j];
-          if (other.color !== current.color || connected.has(other)) continue;
+          if (connected.has(other)) continue;
+          
+          // Sticking bubble matches any color
+          const isColorMatch = other.color === current.color || current.isStickingBubble || other.isStickingBubble;
+          if (!isColorMatch) continue;
 
           const dist = Math.sqrt((current.x - other.x) ** 2 + (current.y - other.y) ** 2);
           if (dist < current.radius + other.radius + 5) {
@@ -710,6 +746,53 @@ export default function Game() {
 
   const handleCancelLeave = () => {
     setShowLeaveConfirm(false);
+  };
+
+  const handleUseTimeSlow = () => {
+    if (usePowerUp('timeSlow')) {
+      setTimeSlowActive(true);
+      setTimeSlowTimeLeft(15000); // 15 seconds in milliseconds
+      setInventory(loadInventory());
+    }
+  };
+
+  const handleUseStickingBubble = () => {
+    if (usePowerUp('stickingBubble')) {
+      // Spawn sticking bubble at center of canvas
+      const stickingBubble: Bubble = {
+        id: `sticking-${Date.now()}`,
+        x: CANVAS_WIDTH / 2,
+        y: CANVAS_HEIGHT / 2,
+        color: '#FF00FF', // Magenta wildcard color
+        radius: 15,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
+        matched: false,
+        isDragging: false,
+        popAnimation: 0,
+        isPowerUp: true,
+        powerUpType: 'bomb', // Use bomb type for visual indicator
+        isAnchored: false,
+        isStickingBubble: true, // Mark as sticking bubble wildcard
+      };
+      gameRef.current.bubbles.push(stickingBubble);
+      setInventory(loadInventory());
+    }
+  };
+
+  const handleRewardSelected = async (reward: 'extraTime' | 'timeSlow' | 'stickingBubble') => {
+    if (reward === 'timeSlow') {
+      const updatedInventory = addPowerUp('timeSlow', 1);
+      setInventory(updatedInventory);
+    } else if (reward === 'stickingBubble') {
+      const updatedInventory = addPowerUp('stickingBubble', 1);
+      setInventory(updatedInventory);
+    } else if (reward === 'extraTime') {
+      // Extra time: add 30 seconds to current level
+      gameRef.current.timeLeft += 30;
+      setGameState(prev => ({ ...prev, timeLeft: gameRef.current.timeLeft }));
+    }
+    setShowRewardModal(false);
   };
 
   const handleNextLevel = () => {
@@ -872,6 +955,14 @@ export default function Game() {
                 <p className="text-neon-pink mb-4 text-lg font-bold">Level {gameState.level} Completed!</p>
               )}
               <div className="flex gap-2 justify-center flex-wrap">
+                {gameState.gameOver && !gameState.levelComplete && (
+                  <Button
+                    onClick={() => setShowRewardModal(true)}
+                    className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-slate-900 font-bold"
+                  >
+                    🎬 Watch Ad for Extra Time
+                  </Button>
+                )}
                 {gameState.levelComplete && (
                   <Button
                     onClick={handleNextLevel}
@@ -941,6 +1032,21 @@ export default function Game() {
         score={gameState.levelComplete ? gameState.score : undefined}
         level={gameState.level}
         showNameInput={gameState.levelComplete}
+      />
+
+      {/* Inventory Panel */}
+      <InventoryPanel
+        inventory={inventory}
+        onUseTimeSlow={handleUseTimeSlow}
+        onUseStickingBubble={handleUseStickingBubble}
+        onOpenAds={() => setShowRewardModal(true)}
+      />
+
+      {/* Reward Choice Modal */}
+      <RewardChoiceModal
+        isOpen={showRewardModal}
+        onClose={() => setShowRewardModal(false)}
+        onSelectReward={handleRewardSelected}
       />
     </div>
   );
