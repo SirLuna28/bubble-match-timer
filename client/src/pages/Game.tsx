@@ -8,6 +8,7 @@ import { saveGameProgress, loadGameProgress, clearGameProgress, hasGameProgress 
 import { createPowerUpParticles, drawPowerUpParticles, createScreenFlash, drawScreenFlash, playPowerUpSound, createBombShockwave, drawBombShockwave, createLightningBolt, drawLightningBolt } from '@/lib/powerupEffects';
 import { createMatchParticles, createScorePopup, updateMatchParticles, updateScorePopups, drawMatchParticles, drawScorePopups, playMatchSound, MatchParticle, ScorePopup } from '@/lib/matchFeedback';
 import { triggerHapticFeedback } from '@/lib/hapticFeedback';
+import { createCosmicExplosion, updateCosmicParticles, drawCosmicParticles, CosmicParticle } from '@/lib/cosmicExplosion';
 
 interface Bubble {
   id: string;
@@ -108,6 +109,7 @@ export default function Game() {
     lightningBolts: [] as any[],
     matchParticles: [] as MatchParticle[],
     scorePopups: [] as ScorePopup[],
+    cosmicExplosions: [] as CosmicParticle[],
   });
 
   const [gameState, setGameState] = useState({
@@ -252,6 +254,10 @@ export default function Game() {
         return p.life > 0;
       });
 
+      // Update cosmic explosions
+      updateCosmicParticles(gameRef.current.cosmicExplosions, 16); // ~60fps
+      gameRef.current.cosmicExplosions = gameRef.current.cosmicExplosions.filter(p => p.life > 0);
+
       // Update pop animations
       gameRef.current.bubbles.forEach(bubble => {
         if (bubble.popAnimation > 0) {
@@ -310,6 +316,9 @@ export default function Game() {
         ctx.arc(particle.x, particle.y, 3, 0, Math.PI * 2);
         ctx.fill();
       });
+
+      // Draw cosmic explosions
+      drawCosmicParticles(ctx, gameRef.current.cosmicExplosions);
 
       // Draw power-up effects
       // Draw power-up particles
@@ -564,6 +573,9 @@ export default function Game() {
           b.matched = true;
           b.popAnimation = 1 + (matchSize - 3) * 0.2;
           createPopParticles(b, matchSize);
+          // Create cosmic explosion effect
+          const cosmicParticles = createCosmicExplosion(b.x, b.y, b.color);
+          gameRef.current.cosmicExplosions.push(...cosmicParticles);
         });
 
         // Spawn power-up if match is 5+ bubbles
