@@ -12,16 +12,17 @@ Please read this Privacy Policy carefully. If you do not agree with our policies
 
 ### 1.1 Information You Provide Directly
 - **Leaderboard Data**: When you choose to participate in our leaderboard feature, we collect your score and level progression data to display your ranking.
-- **Device Information**: We may collect device identifiers necessary for game functionality and analytics.
+- **Device Information**: We may collect device identifiers necessary for game functionality.
 
 ### 1.2 Information Collected Automatically
 - **Usage Data**: We collect information about how you interact with the App, including gameplay patterns, session duration, and feature usage.
 - **Device Data**: Information about your device type, operating system, and app version for compatibility and performance optimization.
 - **Crash Reports**: Automatically collected error logs to improve app stability.
 
-### 1.3 Advertising Data
-- **Ad Interaction**: When you view rewarded advertisements, we collect data about your ad interactions through Google Mobile Ads SDK.
-- **Advertising Identifiers**: We may use your device's advertising identifier (IDFA on iOS, Google Advertising ID on Android) for ad personalization.
+### 1.3 No Advertising or Tracking
+- **No Ad Data**: Bubble Match Timer does not display advertisements or use advertising networks.
+- **No Tracking**: We do not use advertising identifiers (IDFA, Google Advertising ID) or third-party tracking services.
+- **No Analytics**: We do not collect analytics data beyond basic gameplay statistics.
 
 ## 2. How We Use Your Information
 
@@ -29,21 +30,17 @@ We use the collected information for the following purposes:
 
 - **Game Functionality**: To provide and maintain the App and its features, including leaderboard functionality.
 - **Personalization**: To customize your gaming experience and track your progress.
-- **Analytics**: To understand how players use the App and improve gameplay.
-- **Advertising**: To deliver relevant advertisements through Google Mobile Ads.
+- **Performance**: To understand how players use the App and improve gameplay.
 - **Support**: To respond to your inquiries and provide customer support.
 - **Legal Compliance**: To comply with applicable laws and regulations.
 
 ## 3. Sharing of Information
 
-### 3.1 Third-Party Service Providers
-We share information with the following third parties:
-
-- **Google Mobile Ads SDK**: We use Google Mobile Ads to display advertisements. Google collects and processes data according to their [Privacy Policy](https://policies.google.com/privacy).
-- **Analytics Providers**: We may use analytics services to understand app usage patterns.
-
-### 3.2 Leaderboard
+### 3.1 Leaderboard
 Your score and level progression may be visible to other players on the leaderboard. We do not display your personal information beyond your game performance data.
+
+### 3.2 Third-Party Service Providers
+We do not share information with third-party service providers. Bubble Match Timer operates independently without external integrations.
 
 ### 3.3 Legal Requirements
 We may disclose your information if required by law or if we believe in good faith that such disclosure is necessary to:
@@ -74,12 +71,9 @@ Depending on your location, you may have the following rights:
 
 To exercise these rights, please contact us at the email address below.
 
-## 8. Advertising and Opt-Out
+## 8. No Advertisements
 
-We use Google Mobile Ads to display personalized advertisements. You can control ad personalization through your device settings:
-
-- **iOS**: Settings → Privacy → Apple Advertising → Limit Ad Tracking
-- **Android**: Settings → Google → Manage your Google Account → Data & Privacy → Ad settings
+Bubble Match Timer does not display any advertisements. All gameplay content is ad-free, and all power-ups and rewards are earned through gameplay achievements and level progression milestones.
 
 ## 9. Changes to This Privacy Policy
 

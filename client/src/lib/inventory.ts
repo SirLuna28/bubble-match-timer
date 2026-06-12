@@ -47,7 +47,7 @@ export const saveInventory = (inventory: InventoryState): void => {
 };
 
 /**
- * Add power-ups to inventory (from rewarded ads)
+ * Add power-ups to inventory (from level completion and achievements)
  */
 export const addPowerUp = (type: 'timeSlow' | 'stickingBubble' | 'bombBubble', count: number = 1): InventoryState => {
   const inventory = loadInventory();
