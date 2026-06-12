@@ -179,16 +179,7 @@ export default function Game() {
       if (gameRef.current.score >= gameState.goalScore && gameRef.current.timeLeft > 0) {
         gameRef.current.levelComplete = true;
         gameRef.current.isPaused = true;
-        // Advance to next level with increased difficulty
-        gameRef.current.level += 1;
-        gameRef.current.score = 0;
-        gameRef.current.timeLeft = gameConfig.timeLimit; // Reset timer to full time limit
-        // Increase bubble speed for next level
-        gameRef.current.bubbles.forEach(bubble => {
-          bubble.vx *= (1 + 0.15);
-          bubble.vy *= (1 + 0.15);
-        });
-        setGameState(prev => ({ ...prev, levelComplete: true, isPaused: true, level: gameRef.current.level, comboStreak: 0, comboMultiplier: 1 }));
+        setGameState(prev => ({ ...prev, levelComplete: true, isPaused: true, comboStreak: 0, comboMultiplier: 1 }));
         return;
       }
 
@@ -677,6 +668,9 @@ export default function Game() {
   };
 
   const handleNextLevel = () => {
+    // Increment level
+    gameRef.current.level += 1;
+    
     // Reset game state for next level
     gameRef.current.bubbles = [];
     gameRef.current.particles = [];
@@ -719,6 +713,7 @@ export default function Game() {
       level: gameRef.current.level,
       timeLeft: gameConfig.timeLimit, // Reset to full time limit
       levelComplete: false,
+      gameOver: false,
       isPaused: false,
       comboStreak: 0,
       comboMultiplier: 1,
@@ -821,7 +816,7 @@ export default function Game() {
 
         {/* Game Over / Level Complete */}
         {(gameState.gameOver || gameState.levelComplete) && (
-          <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/80 flex items-center justify-center z-50">
             <div className="bg-slate-900 border-2 border-neon-cyan rounded-lg p-6 text-center">
               <h2 className="text-2xl font-bold text-neon-cyan mb-2">
                 {gameState.levelComplete ? '🎉 Level Complete!' : '💀 Game Over'}
