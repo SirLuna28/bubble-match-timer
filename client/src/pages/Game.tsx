@@ -253,9 +253,8 @@ export default function Game() {
         }
       });
 
-      // Draw
-      ctx.fillStyle = '#0a0e27';
-      ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      // Draw - Clear canvas with transparency to show background
+      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
       // Draw bubbles
       gameRef.current.bubbles.forEach(bubble => {
