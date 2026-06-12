@@ -555,8 +555,8 @@ export default function Game() {
         else if (matchSize === 6) points = 250; // 6 bubbles
         else points = 50 * matchSize; // Scale for 7+
         
-        // Play simple pop sound
-        playMatchSound('/manus-storage/simple-pop-sound_5c0f44ee.wav', 0.7);
+        // Play galaxy/cosmic match sound
+        playMatchSound('/manus-storage/galaxy-match-sound_a16aa4a8.wav', 0.6);
         
         connected.forEach(b => {
           b.matched = true;
