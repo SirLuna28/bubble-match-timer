@@ -305,14 +305,32 @@ export default function Game() {
         const scale = 1 - bubble.popAnimation * 0.5;
         const radius = bubble.radius * scale;
 
-        // Bubble glow
-        const gradient = ctx.createRadialGradient(bubble.x, bubble.y, 0, bubble.x, bubble.y, radius + 5);
-        gradient.addColorStop(0, bubble.color + '80');
-        gradient.addColorStop(1, bubble.color + '00');
-        ctx.fillStyle = gradient;
-        ctx.beginPath();
-        ctx.arc(bubble.x, bubble.y, radius + 5, 0, Math.PI * 2);
-        ctx.fill();
+        // Sticking Bubble - enhanced glow effect
+        if (bubble.isStickingBubble) {
+          // Multiple glow rings for intense effect
+          ctx.shadowColor = '#00FF00';
+          ctx.shadowBlur = 25;
+          for (let i = 0; i < 3; i++) {
+            const glowRadius = radius + (i + 1) * 8;
+            const glowGradient = ctx.createRadialGradient(bubble.x, bubble.y, 0, bubble.x, bubble.y, glowRadius);
+            glowGradient.addColorStop(0, 'rgba(0, 255, 0, 0.3)');
+            glowGradient.addColorStop(1, 'rgba(0, 255, 0, 0)');
+            ctx.fillStyle = glowGradient;
+            ctx.beginPath();
+            ctx.arc(bubble.x, bubble.y, glowRadius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.shadowBlur = 0;
+        } else {
+          // Regular bubble glow
+          const gradient = ctx.createRadialGradient(bubble.x, bubble.y, 0, bubble.x, bubble.y, radius + 5);
+          gradient.addColorStop(0, bubble.color + '80');
+          gradient.addColorStop(1, bubble.color + '00');
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.arc(bubble.x, bubble.y, radius + 5, 0, Math.PI * 2);
+          ctx.fill();
+        }
 
         // Bubble body
         ctx.fillStyle = bubble.color;
@@ -320,8 +338,19 @@ export default function Game() {
         ctx.arc(bubble.x, bubble.y, radius, 0, Math.PI * 2);
         ctx.fill();
 
+        // Sticking Bubble indicator with special glow
+        if (bubble.isStickingBubble) {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold 18px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.shadowColor = '#00FF00';
+          ctx.shadowBlur = 8;
+          ctx.fillText('🧼', bubble.x, bubble.y);
+          ctx.shadowBlur = 0;
+        }
         // Power-up indicator (star or symbol)
-        if (bubble.isPowerUp) {
+        else if (bubble.isPowerUp) {
           ctx.fillStyle = '#FFFFFF';
           ctx.font = 'bold 16px Arial';
           ctx.textAlign = 'center';
@@ -376,12 +405,33 @@ export default function Game() {
         ctx.fillStyle = 'rgba(0, 191, 255, 0.1)';
         ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
         
-        // Draw timer text
+        // Draw glowing background for timer
+        const timerX = CANVAS_WIDTH / 2;
+        const timerY = 50;
+        const timerWidth = 140;
+        const timerHeight = 50;
+        
+        // Glow effect
+        ctx.shadowColor = '#00BFFF';
+        ctx.shadowBlur = 20;
+        ctx.fillStyle = 'rgba(0, 191, 255, 0.2)';
+        ctx.fillRect(timerX - timerWidth / 2, timerY - timerHeight / 2, timerWidth, timerHeight);
+        ctx.shadowBlur = 0;
+        
+        // Draw border
+        ctx.strokeStyle = '#00BFFF';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(timerX - timerWidth / 2, timerY - timerHeight / 2, timerWidth, timerHeight);
+        
+        // Draw timer text with glow
+        ctx.shadowColor = '#00BFFF';
+        ctx.shadowBlur = 10;
         ctx.fillStyle = '#00BFFF';
-        ctx.font = 'bold 32px Arial';
+        ctx.font = 'bold 28px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(`⏳ ${timeLeftSeconds}s`, CANVAS_WIDTH / 2, 50);
+        ctx.fillText(`⏳ ${timeLeftSeconds}s`, timerX, timerY);
+        ctx.shadowBlur = 0;
       }
 
       gameRef.current.animationId = requestAnimationFrame(animate);
