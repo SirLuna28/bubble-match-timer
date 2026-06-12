@@ -258,10 +258,7 @@ export default function Game() {
       // Draw - Clear canvas with transparency to show background
       ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
-      // Draw canvas border to show playable area
-      ctx.strokeStyle = 'rgba(0, 255, 136, 0.2)';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+      // Border removed for cleaner visuals
 
       // Draw bubbles
       gameRef.current.bubbles.forEach(bubble => {
@@ -649,7 +646,12 @@ export default function Game() {
   };
 
   const handleHome = () => {
-    if (hasUnsavedProgress) {
+    // Check if there's active game progress that would be lost
+    const hasActiveProgress = (gameState.score > 0 || gameState.timeLeft < gameConfig.timeLimit) && 
+                             !gameState.gameOver && 
+                             !gameState.levelComplete;
+    
+    if (hasUnsavedProgress || hasActiveProgress) {
       setShowLeaveConfirm(true);
     } else {
       navigate('/');
