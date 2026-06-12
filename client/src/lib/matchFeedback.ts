@@ -125,22 +125,60 @@ export const drawScorePopups = (
   });
 };
 
-// Sound effect playback
-const soundCache = new Map<string, HTMLAudioElement>();
+// Sound effect playback using Web Audio API
+let audioContext: AudioContext | null = null;
+const soundCache = new Map<string, AudioBuffer>();
+
+const getAudioContext = (): AudioContext => {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  }
+  return audioContext;
+};
 
 export const playMatchSound = (soundPath: string, volume: number = 0.5) => {
   try {
-    let audio = soundCache.get(soundPath);
-    if (!audio) {
-      audio = new Audio(soundPath);
-      soundCache.set(soundPath, audio);
+    const ctx = getAudioContext();
+    
+    // Resume audio context if suspended
+    if (ctx.state === 'suspended') {
+      ctx.resume();
     }
-    audio.volume = volume;
-    audio.currentTime = 0;
-    audio.play().catch((err) => {
-      console.log('Sound play failed:', err);
-    });
+    
+    // Check cache first
+    const cached = soundCache.get(soundPath);
+    if (cached) {
+      const source = ctx.createBufferSource();
+      const gainNode = ctx.createGain();
+      source.buffer = cached;
+      gainNode.gain.value = volume;
+      source.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      source.start(0);
+      return;
+    }
+    
+    // Fetch and decode audio
+    fetch(soundPath)
+      .then(response => response.arrayBuffer())
+      .then(arrayBuffer => ctx.decodeAudioData(arrayBuffer))
+      .then(audioBuffer => {
+        soundCache.set(soundPath, audioBuffer);
+        const source = ctx.createBufferSource();
+        const gainNode = ctx.createGain();
+        source.buffer = audioBuffer;
+        gainNode.gain.value = volume;
+        source.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        source.start(0);
+      })
+      .catch(() => {
+        // Fallback to HTML Audio
+        const audio = new Audio(soundPath);
+        audio.volume = volume;
+        audio.play().catch(() => {});
+      });
   } catch (err) {
-    console.log('Error playing sound:', err);
+    // Silent fail
   }
 };

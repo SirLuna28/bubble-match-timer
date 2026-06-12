@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { useAudioContext } from '@/hooks/useAudioContext';
 import { useEffect, useState } from 'react';
 import { loadGameProgress, hasGameProgress } from '@/lib/gameSave';
+import { Leaderboard } from '@/components/Leaderboard';
 
 export default function Home() {
   const [, navigate] = useLocation();
   const { play: playMusic } = useAudioContext();
   const [savedGame, setSavedGame] = useState(loadGameProgress());
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   useEffect(() => {
     playMusic();
@@ -96,17 +98,33 @@ export default function Home() {
           </Button>
         )}
 
-        {/* Settings Button */}
-        <Button
-          onClick={handleSettingsClick}
-          variant="outline"
-          size="sm"
-          className="border-neon-cyan/50 text-neon-cyan hover:bg-neon-cyan/10 mt-4"
-        >
-          <Settings className="w-4 h-4 mr-2" />
-          Settings
-        </Button>
+        {/* Leaderboard and Settings Buttons */}
+        <div className="flex gap-2 mt-4">
+          <Button
+            onClick={() => setShowLeaderboard(true)}
+            variant="outline"
+            size="sm"
+            className="border-neon-yellow/50 text-neon-yellow hover:bg-neon-yellow/10"
+          >
+            🏆 Leaderboard
+          </Button>
+          <Button
+            onClick={handleSettingsClick}
+            variant="outline"
+            size="sm"
+            className="border-neon-cyan/50 text-neon-cyan hover:bg-neon-cyan/10"
+          >
+            <Settings className="w-4 h-4 mr-2" />
+            Settings
+          </Button>
+        </div>
       </div>
+
+      {/* Leaderboard Modal */}
+      <Leaderboard
+        isOpen={showLeaderboard}
+        onClose={() => setShowLeaderboard(false)}
+      />
 
       {/* Footer Info */}
       <div className="relative z-10 px-4 py-6 text-center text-xs text-muted-foreground border-t border-neon-cyan/20 bg-black/30 backdrop-blur-sm">

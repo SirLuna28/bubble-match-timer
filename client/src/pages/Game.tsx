@@ -9,6 +9,7 @@ import { createPowerUpParticles, drawPowerUpParticles, createScreenFlash, drawSc
 import { createMatchParticles, createScorePopup, updateMatchParticles, updateScorePopups, drawMatchParticles, drawScorePopups, playMatchSound, MatchParticle, ScorePopup } from '@/lib/matchFeedback';
 import { triggerHapticFeedback } from '@/lib/hapticFeedback';
 import { createCosmicExplosion, updateCosmicParticles, drawCosmicParticles, CosmicParticle } from '@/lib/cosmicExplosion';
+import { Leaderboard } from '@/components/Leaderboard';
 
 interface Bubble {
   id: string;
@@ -127,6 +128,7 @@ export default function Game() {
   });
 
   const [hasUnsavedProgress, setHasUnsavedProgress] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   // Start background music on component mount
   useEffect(() => {
@@ -575,7 +577,7 @@ export default function Game() {
         else points = 50 * matchSize; // Scale for 7+
         
         // Play galaxy/cosmic match sound and trigger haptic feedback
-        playMatchSound('/manus-storage/galaxy-match-sound_a16aa4a8.wav', 0.8);
+        playMatchSound('/manus-storage/galaxy-match-sound_f8d604f8.wav', 0.8);
         triggerHapticFeedback('match');
         
         connected.forEach(b => {
@@ -786,10 +788,10 @@ export default function Game() {
   }, []);
 
   return (
-    <div className="w-screen h-screen flex items-center justify-center bg-gradient-to-b from-slate-900 to-slate-950">
-      <div className="flex flex-col bg-slate-900 rounded-lg overflow-hidden shadow-2xl" style={{ width: '360px', height: '640px', maxWidth: '100vw', maxHeight: '100vh' }}>
+    <div className="game-container">
+      <div className="flex flex-col h-full w-full bg-slate-900 overflow-hidden">
         {/* HUD */}
-        <div className="flex justify-between items-center px-4 py-3 bg-slate-800 border-b border-slate-700">
+        <div className="hud-top bg-slate-800 border-b border-slate-700 flex justify-between items-center">
           <div className="text-center flex-1">
             <div className="text-xs text-slate-400">Level</div>
             <div className="text-lg font-bold text-neon-green">{gameState.level}</div>
@@ -820,7 +822,7 @@ export default function Game() {
 
         {/* Canvas */}
         <div 
-          className="flex-1 relative overflow-hidden bg-cover bg-center"
+          className="game-canvas bg-cover bg-center"
           style={{
             backgroundImage: `url('${currentBackground}')`,
             backgroundSize: 'cover',
@@ -839,7 +841,7 @@ export default function Game() {
         </div>
 
         {/* Controls */}
-        <div className="flex justify-between items-center px-4 py-3 bg-slate-800 border-t border-slate-700">
+        <div className="control-bar bg-slate-800 border-t border-slate-700 flex justify-center gap-4">
           <Button
             onClick={handlePause}
             size="sm"
@@ -878,6 +880,12 @@ export default function Game() {
                     Next Level →
                   </Button>
                 )}
+                <Button
+                  onClick={() => setShowLeaderboard(true)}
+                  className="bg-neon-yellow hover:bg-neon-yellow/80 text-slate-900 font-bold"
+                >
+                  🏆 Leaderboard
+                </Button>
                 <Button
                   onClick={handleHome}
                   className="bg-neon-cyan hover:bg-neon-cyan/80 text-slate-900 font-bold"
@@ -924,6 +932,15 @@ export default function Game() {
         onConfirm={handleConfirmLeave}
         onCancel={handleCancelLeave}
         isDangerous={true}
+      />
+
+      {/* Leaderboard Dialog */}
+      <Leaderboard
+        isOpen={showLeaderboard}
+        onClose={() => setShowLeaderboard(false)}
+        score={gameState.levelComplete ? gameState.score : undefined}
+        level={gameState.level}
+        showNameInput={gameState.levelComplete}
       />
     </div>
   );
