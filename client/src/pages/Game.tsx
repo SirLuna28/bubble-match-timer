@@ -555,15 +555,13 @@ export default function Game() {
         else if (matchSize === 6) points = 250; // 6 bubbles
         else points = 50 * matchSize; // Scale for 7+
         
-        // Play match sound
-        playMatchSound('/manus-storage/bubble-match-sound_3ed93266.wav', 0.6);
+        // Play simple pop sound
+        playMatchSound('/manus-storage/simple-pop-sound_5c0f44ee.wav', 0.7);
         
         connected.forEach(b => {
           b.matched = true;
           b.popAnimation = 1 + (matchSize - 3) * 0.2;
           createPopParticles(b, matchSize);
-          // Create match particles
-          gameRef.current.matchParticles.push(...createMatchParticles(b.x, b.y, b.color, 6));
         });
 
         // Spawn power-up if match is 5+ bubbles
@@ -588,12 +586,6 @@ export default function Game() {
         const multipliedPoints = Math.floor(points * gameRef.current.comboMultiplier);
         
         gameRef.current.score += multipliedPoints;
-        
-        // Create score popup at center of match
-        const centerX = Array.from(connected).reduce((sum, b) => sum + b.x, 0) / connected.size;
-        const centerY = Array.from(connected).reduce((sum, b) => sum + b.y, 0) / connected.size;
-        gameRef.current.scorePopups.push(createScorePopup(centerX, centerY, multipliedPoints));
-        
         setGameState(prev => ({ ...prev, score: gameRef.current.score, comboStreak: gameRef.current.comboStreak, comboMultiplier: gameRef.current.comboMultiplier }));
       }
     }
