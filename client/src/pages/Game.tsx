@@ -556,7 +556,7 @@ export default function Game() {
         else points = 50 * matchSize; // Scale for 7+
         
         // Play galaxy/cosmic match sound
-        playMatchSound('/manus-storage/galaxy-match-sound_a16aa4a8.wav', 0.6);
+        playMatchSound('/manus-storage/galaxy-match-sound_a16aa4a8.wav', 0.8);
         
         connected.forEach(b => {
           b.matched = true;
