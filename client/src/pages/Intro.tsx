@@ -23,7 +23,7 @@ export default function Intro() {
       // Set default balanced difficulty (between Easy and Normal)
       const gameConfig = {
         difficulty: 'normal',
-        goalScore: 600,
+        goalScore: 300,
         timeLimit: 60,
         bubbleCount: 15,
       };
