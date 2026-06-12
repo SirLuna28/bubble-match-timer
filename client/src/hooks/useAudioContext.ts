@@ -8,7 +8,7 @@ export const useAudioContext = () => {
     // Create audio element if it doesn't exist
     if (!audioRef.current) {
       const audio = new Audio();
-      audio.src = 'https://d2xsxph8kpxj0f.cloudfront.net/310519663707547870/WBKamk4m2zg6U4yPd2Ftwq/interstellar-ambient-Nv4Tz8Yfk9XqJbPmLaWvRs.wav';
+      audio.src = '/manus-storage/interstellar-ambient_e70aa5fb.wav';
       audio.loop = true;
       audio.volume = 0.3; // Set to 30% volume for ambient background
       audioRef.current = audio;
