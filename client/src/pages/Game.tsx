@@ -7,6 +7,7 @@ import ConfirmDialog from '@/components/ConfirmDialog';
 import { saveGameProgress, loadGameProgress, clearGameProgress, hasGameProgress } from '@/lib/gameSave';
 import { createPowerUpParticles, drawPowerUpParticles, createScreenFlash, drawScreenFlash, playPowerUpSound, createBombShockwave, drawBombShockwave, createLightningBolt, drawLightningBolt } from '@/lib/powerupEffects';
 import { createMatchParticles, createScorePopup, updateMatchParticles, updateScorePopups, drawMatchParticles, drawScorePopups, playMatchSound, MatchParticle, ScorePopup } from '@/lib/matchFeedback';
+import { triggerHapticFeedback } from '@/lib/hapticFeedback';
 
 interface Bubble {
   id: string;
@@ -555,8 +556,9 @@ export default function Game() {
         else if (matchSize === 6) points = 250; // 6 bubbles
         else points = 50 * matchSize; // Scale for 7+
         
-        // Play galaxy/cosmic match sound
+        // Play galaxy/cosmic match sound and trigger haptic feedback
         playMatchSound('/manus-storage/galaxy-match-sound_a16aa4a8.wav', 0.8);
+        triggerHapticFeedback('match');
         
         connected.forEach(b => {
           b.matched = true;
