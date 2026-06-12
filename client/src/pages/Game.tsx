@@ -30,6 +30,9 @@ interface Bubble {
   isAnchored?: boolean;
   anchorTimeLeft?: number;
   isStickingBubble?: boolean;
+  isBombBubble?: boolean;
+  bombPulseTime?: number;
+  bombExplodeTime?: number;
 }
 
 interface PopParticle {
@@ -226,6 +229,40 @@ export default function Game() {
       // Physics update
       if (!gameRef.current.isPaused && gameRef.current.freezeTimeLeft <= 0) {
         gameRef.current.bubbles.forEach(bubble => {
+          // Update bomb bubble countdown and explosion
+          if (bubble.isBombBubble && bubble.bombExplodeTime !== undefined) {
+            bubble.bombExplodeTime -= 16; // ~60fps
+            if (bubble.bombExplodeTime <= 0) {
+              // Bomb explodes - destroy nearby bubbles and award bonus points
+              const BOMB_RADIUS = 80;
+              let destroyedCount = 0;
+              
+              gameRef.current.bubbles.forEach(otherBubble => {
+                if (otherBubble.matched || otherBubble === bubble) return;
+                const dist = Math.sqrt((otherBubble.x - bubble.x) ** 2 + (otherBubble.y - bubble.y) ** 2);
+                if (dist < BOMB_RADIUS) {
+                  otherBubble.matched = true;
+                  otherBubble.popAnimation = 1;
+                  createPopParticles(otherBubble, 1);
+                  destroyedCount += 1;
+                  // Award bonus points for each destroyed bubble
+                  gameRef.current.score += 75; // Bonus points per destroyed bubble
+                }
+              });
+              
+              // Mark bomb as matched
+              bubble.matched = true;
+              bubble.popAnimation = 1;
+              createPopParticles(bubble, 1);
+              
+              // Create explosion particles
+              const cosmicParticles = createCosmicExplosion(bubble.x, bubble.y, '#FF8C00');
+              gameRef.current.cosmicExplosions.push(...cosmicParticles);
+              
+              setGameState(prev => ({ ...prev, score: gameRef.current.score }));
+            }
+          }
+          
           // Update anchor timer
           if (bubble.isAnchored && bubble.anchorTimeLeft !== undefined) {
             bubble.anchorTimeLeft -= 16; // ~60fps
@@ -338,8 +375,40 @@ export default function Game() {
         ctx.arc(bubble.x, bubble.y, radius, 0, Math.PI * 2);
         ctx.fill();
 
+        // Bomb Bubble with pulsing effect
+        if (bubble.isBombBubble && bubble.bombPulseTime !== undefined && bubble.bombExplodeTime !== undefined) {
+          // Update pulse time
+          bubble.bombPulseTime += 16;
+          const pulsePhase = (bubble.bombPulseTime / 500) % 1; // Pulse every 500ms
+          const pulseScale = 1 + Math.sin(pulsePhase * Math.PI * 2) * 0.15; // Pulse between 0.85 and 1.15
+          
+          // Draw pulsing orange glow
+          ctx.shadowColor = '#FF8C00';
+          ctx.shadowBlur = 15 + pulseScale * 10;
+          for (let i = 0; i < 2; i++) {
+            const glowRadius = radius * pulseScale + i * 6;
+            const glowGradient = ctx.createRadialGradient(bubble.x, bubble.y, 0, bubble.x, bubble.y, glowRadius);
+            glowGradient.addColorStop(0, 'rgba(255, 140, 0, 0.4)');
+            glowGradient.addColorStop(1, 'rgba(255, 140, 0, 0)');
+            ctx.fillStyle = glowGradient;
+            ctx.beginPath();
+            ctx.arc(bubble.x, bubble.y, glowRadius, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.shadowBlur = 0;
+          
+          // Draw bomb indicator
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold 18px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.shadowColor = '#FF8C00';
+          ctx.shadowBlur = 8;
+          ctx.fillText('💣', bubble.x, bubble.y);
+          ctx.shadowBlur = 0;
+        }
         // Sticking Bubble indicator with special glow
-        if (bubble.isStickingBubble) {
+        else if (bubble.isStickingBubble) {
           ctx.fillStyle = '#FFFFFF';
           ctx.font = 'bold 18px Arial';
           ctx.textAlign = 'center';
@@ -830,12 +899,41 @@ export default function Game() {
     }
   };
 
-  const handleRewardSelected = async (reward: 'extraTime' | 'timeSlow' | 'stickingBubble') => {
+  const handleUseBombBubble = () => {
+    if (usePowerUp('bombBubble')) {
+      // Spawn bomb bubble at center of canvas
+      const bombBubble: Bubble = {
+        id: `bomb-${Date.now()}`,
+        x: CANVAS_WIDTH / 2,
+        y: CANVAS_HEIGHT / 2,
+        color: '#FF8C00', // Dark orange
+        radius: 15,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
+        matched: false,
+        isDragging: false,
+        popAnimation: 0,
+        isPowerUp: true,
+        powerUpType: 'bomb',
+        isAnchored: false,
+        isBombBubble: true,
+        bombPulseTime: 0,
+        bombExplodeTime: 3000, // Explode after 3 seconds
+      };
+      gameRef.current.bubbles.push(bombBubble);
+      setInventory(loadInventory());
+    }
+  };
+
+  const handleRewardSelected = async (reward: 'extraTime' | 'timeSlow' | 'stickingBubble' | 'bombBubble') => {
     if (reward === 'timeSlow') {
       const updatedInventory = addPowerUp('timeSlow', 1);
       setInventory(updatedInventory);
     } else if (reward === 'stickingBubble') {
       const updatedInventory = addPowerUp('stickingBubble', 1);
+      setInventory(updatedInventory);
+    } else if (reward === 'bombBubble') {
+      const updatedInventory = addPowerUp('bombBubble', 1);
       setInventory(updatedInventory);
     } else if (reward === 'extraTime') {
       // Extra time: add 30 seconds to current level
@@ -1089,6 +1187,7 @@ export default function Game() {
         inventory={inventory}
         onUseTimeSlow={handleUseTimeSlow}
         onUseStickingBubble={handleUseStickingBubble}
+        onUseBombBubble={handleUseBombBubble}
         onOpenAds={() => setShowRewardModal(true)}
       />
 

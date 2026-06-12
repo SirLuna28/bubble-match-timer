@@ -5,14 +5,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 interface RewardChoiceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectReward: (reward: 'extraTime' | 'timeSlow' | 'stickingBubble') => void;
+  onSelectReward: (reward: 'extraTime' | 'timeSlow' | 'stickingBubble' | 'bombBubble') => void;
   isLoading?: boolean;
 }
 
 export function RewardChoiceModal({ isOpen, onClose, onSelectReward, isLoading = false }: RewardChoiceModalProps) {
   const [selectedReward, setSelectedReward] = useState<string | null>(null);
 
-  const handleSelectReward = (reward: 'extraTime' | 'timeSlow' | 'stickingBubble') => {
+  const handleSelectReward = (reward: 'extraTime' | 'timeSlow' | 'stickingBubble' | 'bombBubble') => {
     setSelectedReward(reward);
     onSelectReward(reward);
     setSelectedReward(null);
@@ -72,6 +72,21 @@ export function RewardChoiceModal({ isOpen, onClose, onSelectReward, isLoading =
               <div>
                 <p className="font-bold text-green-400">Sticking Bubble</p>
                 <p className="text-sm text-gray-300">Wildcard bubble that matches any color (added to inventory)</p>
+              </div>
+            </div>
+          </button>
+
+          {/* Bomb Bubble Reward */}
+          <button
+            onClick={() => handleSelectReward('bombBubble')}
+            disabled={isLoading || selectedReward !== null}
+            className="w-full p-4 rounded-lg border-2 border-orange-500/50 bg-slate-800 hover:bg-slate-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-left"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-3xl">💣</span>
+              <div>
+                <p className="font-bold text-orange-400">Bomb Bubble</p>
+                <p className="text-sm text-gray-300">Explodes and destroys nearby bubbles (added to inventory)</p>
               </div>
             </div>
           </button>

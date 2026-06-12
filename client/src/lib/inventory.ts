@@ -6,6 +6,7 @@
 export interface InventoryState {
   timeSlowCount: number;
   stickingBubbleCount: number;
+  bombBubbleCount: number;
 }
 
 const INVENTORY_KEY = 'bmt_inventory';
@@ -14,6 +15,7 @@ const INVENTORY_KEY = 'bmt_inventory';
 const DEFAULT_INVENTORY: InventoryState = {
   timeSlowCount: 0,
   stickingBubbleCount: 0,
+  bombBubbleCount: 0,
 };
 
 /**
@@ -23,7 +25,9 @@ export const loadInventory = (): InventoryState => {
   try {
     const stored = localStorage.getItem(INVENTORY_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      const parsed = JSON.parse(stored);
+      // Backfill missing keys from DEFAULT_INVENTORY
+      return { ...DEFAULT_INVENTORY, ...parsed };
     }
   } catch (error) {
     console.error('Failed to load inventory:', error);
@@ -45,13 +49,15 @@ export const saveInventory = (inventory: InventoryState): void => {
 /**
  * Add power-ups to inventory (from rewarded ads)
  */
-export const addPowerUp = (type: 'timeSlow' | 'stickingBubble', count: number = 1): InventoryState => {
+export const addPowerUp = (type: 'timeSlow' | 'stickingBubble' | 'bombBubble', count: number = 1): InventoryState => {
   const inventory = loadInventory();
   
   if (type === 'timeSlow') {
     inventory.timeSlowCount += count;
   } else if (type === 'stickingBubble') {
     inventory.stickingBubbleCount += count;
+  } else if (type === 'bombBubble') {
+    inventory.bombBubbleCount += count;
   }
   
   saveInventory(inventory);
@@ -61,7 +67,7 @@ export const addPowerUp = (type: 'timeSlow' | 'stickingBubble', count: number = 
 /**
  * Use a power-up (decrement count)
  */
-export const usePowerUp = (type: 'timeSlow' | 'stickingBubble'): boolean => {
+export const usePowerUp = (type: 'timeSlow' | 'stickingBubble' | 'bombBubble'): boolean => {
   const inventory = loadInventory();
   
   if (type === 'timeSlow' && inventory.timeSlowCount > 0) {
@@ -70,6 +76,10 @@ export const usePowerUp = (type: 'timeSlow' | 'stickingBubble'): boolean => {
     return true;
   } else if (type === 'stickingBubble' && inventory.stickingBubbleCount > 0) {
     inventory.stickingBubbleCount -= 1;
+    saveInventory(inventory);
+    return true;
+  } else if (type === 'bombBubble' && inventory.bombBubbleCount > 0) {
+    inventory.bombBubbleCount -= 1;
     saveInventory(inventory);
     return true;
   }

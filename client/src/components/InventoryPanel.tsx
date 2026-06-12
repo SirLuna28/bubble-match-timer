@@ -6,6 +6,7 @@ import { InventoryState, getInventory } from '@/lib/inventory';
 interface InventoryPanelProps {
   onUseTimeSlow?: () => void;
   onUseStickingBubble?: () => void;
+  onUseBombBubble?: () => void;
   onOpenAds?: () => void;
   inventory?: InventoryState;
 }
@@ -13,6 +14,7 @@ interface InventoryPanelProps {
 export function InventoryPanel({
   onUseTimeSlow,
   onUseStickingBubble,
+  onUseBombBubble,
   onOpenAds,
   inventory: externalInventory,
 }: InventoryPanelProps) {
@@ -44,6 +46,17 @@ export function InventoryPanel({
       setInventory(prev => ({
         ...prev,
         stickingBubbleCount: Math.max(0, prev.stickingBubbleCount - 1),
+      }));
+    }
+  };
+
+  const handleUseBombBubble = () => {
+    if (inventory.bombBubbleCount > 0 && onUseBombBubble) {
+      onUseBombBubble();
+      // Update local state
+      setInventory(prev => ({
+        ...prev,
+        bombBubbleCount: Math.max(0, prev.bombBubbleCount - 1),
       }));
     }
   };
@@ -116,6 +129,28 @@ export function InventoryPanel({
                   disabled={inventory.stickingBubbleCount === 0}
                   size="sm"
                   className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Use
+                </Button>
+              </div>
+            </div>
+
+            {/* Bomb Bubble */}
+            <div className="flex items-center justify-between p-3 bg-slate-800 rounded-lg border border-orange-500/30">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">💣</span>
+                <div>
+                  <p className="text-sm font-semibold text-orange-400">Bomb Bubble</p>
+                  <p className="text-xs text-gray-400">Explodes</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold text-orange-400">x{inventory.bombBubbleCount}</span>
+                <Button
+                  onClick={handleUseBombBubble}
+                  disabled={inventory.bombBubbleCount === 0}
+                  size="sm"
+                  className="bg-orange-600 hover:bg-orange-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Use
                 </Button>
