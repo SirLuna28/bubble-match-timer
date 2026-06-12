@@ -2,18 +2,28 @@ import { Play, Settings } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { useAudioContext } from '@/hooks/useAudioContext';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { loadGameProgress, hasGameProgress } from '@/lib/gameSave';
 
 export default function Home() {
   const [, navigate] = useLocation();
   const { play: playMusic } = useAudioContext();
+  const [savedGame, setSavedGame] = useState(loadGameProgress());
 
   useEffect(() => {
     playMusic();
   }, [playMusic]);
 
+  useEffect(() => {
+    setSavedGame(loadGameProgress());
+  }, []);
+
   const handlePlayClick = () => {
     navigate('/intro');
+  };
+
+  const handleResumeClick = () => {
+    navigate('/game');
   };
 
   const handleSettingsClick = () => {
@@ -55,22 +65,43 @@ export default function Home() {
           Cosmic Puzzle Challenge
         </p>
 
-        {/* Play Button - Auto-starts intro */}
-        <Button
-          onClick={handlePlayClick}
-          size="lg"
-          className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-black hover:opacity-90 font-bold text-lg px-8 animate-pulse"
-        >
-          <Play className="w-5 h-5 mr-2" />
-          Play Game
-        </Button>
+        {/* Resume or Play Button */}
+        {savedGame ? (
+          <div className="flex flex-col gap-3 w-full max-w-xs">
+            <Button
+              onClick={handleResumeClick}
+              size="lg"
+              className="bg-gradient-to-r from-neon-green to-neon-cyan text-black hover:opacity-90 font-bold text-lg px-8"
+            >
+              <Play className="w-5 h-5 mr-2" />
+              Resume Level {savedGame.level}
+            </Button>
+            <Button
+              onClick={handlePlayClick}
+              size="sm"
+              variant="outline"
+              className="border-neon-cyan/50 text-neon-cyan hover:bg-neon-cyan/10"
+            >
+              New Game
+            </Button>
+          </div>
+        ) : (
+          <Button
+            onClick={handlePlayClick}
+            size="lg"
+            className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-black hover:opacity-90 font-bold text-lg px-8 animate-pulse"
+          >
+            <Play className="w-5 h-5 mr-2" />
+            Play Game
+          </Button>
+        )}
 
         {/* Settings Button */}
         <Button
           onClick={handleSettingsClick}
           variant="outline"
           size="sm"
-          className="border-neon-cyan/50 text-neon-cyan hover:bg-neon-cyan/10"
+          className="border-neon-cyan/50 text-neon-cyan hover:bg-neon-cyan/10 mt-4"
         >
           <Settings className="w-4 h-4 mr-2" />
           Settings

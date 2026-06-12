@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Pause, Home } from 'lucide-react';
 import { useLocation } from 'wouter';
 import { useAudioContext } from '@/hooks/useAudioContext';
+import ConfirmDialog from '@/components/ConfirmDialog';
+import { saveGameProgress, loadGameProgress, clearGameProgress, hasGameProgress } from '@/lib/gameSave';
 
 interface Bubble {
   id: string;
@@ -72,6 +74,7 @@ export default function Game() {
   const { play: playMusic } = useAudioContext();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentBackground, setCurrentBackground] = useState(getBackgroundForLevel(1));
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [gameConfig, setGameConfig] = useState<GameConfig>({
     difficulty: 'normal',
     goalScore: 600,
@@ -109,6 +112,8 @@ export default function Game() {
     comboStreak: 0,
     comboMultiplier: 1,
   });
+
+  const [hasUnsavedProgress, setHasUnsavedProgress] = useState(false);
 
   // Start background music on component mount
   useEffect(() => {
@@ -584,10 +589,38 @@ export default function Game() {
   const handlePause = () => {
     gameRef.current.isPaused = !gameRef.current.isPaused;
     setGameState(prev => ({ ...prev, isPaused: gameRef.current.isPaused }));
+    // Save progress when pausing
+    if (gameRef.current.isPaused && !gameState.gameOver && !gameState.levelComplete) {
+      saveGameProgress({
+        level: gameState.level,
+        score: gameState.score,
+        timeLeft: gameState.timeLeft,
+        goalScore: gameState.goalScore,
+        bubbleCount: gameConfig.bubbleCount,
+        difficulty: gameConfig.difficulty,
+        timestamp: Date.now(),
+      });
+      setHasUnsavedProgress(true);
+    }
   };
 
   const handleHome = () => {
+    if (hasUnsavedProgress) {
+      setShowLeaveConfirm(true);
+    } else {
+      navigate('/');
+    }
+  };
+
+  const handleConfirmLeave = () => {
+    clearGameProgress();
+    setHasUnsavedProgress(false);
+    setShowLeaveConfirm(false);
     navigate('/');
+  };
+
+  const handleCancelLeave = () => {
+    setShowLeaveConfirm(false);
   };
 
   const handleNextLevel = () => {
@@ -769,16 +802,37 @@ export default function Game() {
           <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
             <div className="bg-slate-900 border-2 border-neon-pink rounded-lg p-6 text-center">
               <h2 className="text-2xl font-bold text-neon-pink mb-4">⏸️ Paused</h2>
-              <Button
-                onClick={handlePause}
-                className="bg-neon-cyan hover:bg-neon-cyan/80 text-slate-900 font-bold"
-              >
-                Resume Game
-              </Button>
+              <div className="flex gap-3 justify-center">
+                <Button
+                  onClick={handlePause}
+                  className="bg-neon-cyan hover:bg-neon-cyan/80 text-slate-900 font-bold"
+                >
+                  Resume Game
+                </Button>
+                <Button
+                  onClick={handleHome}
+                  className="bg-neon-pink hover:bg-neon-pink/80 text-slate-900 font-bold"
+                >
+                  <Home className="w-4 h-4 mr-1" />
+                  Home
+                </Button>
+              </div>
             </div>
           </div>
         )}
       </div>
+
+      {/* Confirm Leave Dialog */}
+      <ConfirmDialog
+        isOpen={showLeaveConfirm}
+        title="Leave Game?"
+        message="You have unsaved progress. Your game will be lost if you leave without saving. Are you sure?"
+        confirmText="Leave & Lose Progress"
+        cancelText="Stay & Continue"
+        onConfirm={handleConfirmLeave}
+        onCancel={handleCancelLeave}
+        isDangerous={true}
+      />
     </div>
   );
 }
