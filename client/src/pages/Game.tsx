@@ -110,6 +110,8 @@ export default function Game() {
     matchParticles: [] as MatchParticle[],
     scorePopups: [] as ScorePopup[],
     cosmicExplosions: [] as CosmicParticle[],
+    matchDetectionDelay: 1.5, // Delay in seconds before allowing matches
+    levelStartTime: 0,
   });
 
   const [gameState, setGameState] = useState({
@@ -160,6 +162,7 @@ export default function Game() {
         });
       }
       gameRef.current.bubbles = bubbles;
+      gameRef.current.levelStartTime = Date.now(); // Set level start time for match delay
       setGameState({
         score: 0,
         level: 1,
@@ -533,6 +536,12 @@ export default function Game() {
   };
 
   const checkMatches = () => {
+    // Prevent matches during the initial delay period
+    const elapsedTime = (Date.now() - gameRef.current.levelStartTime) / 1000;
+    if (elapsedTime < gameRef.current.matchDetectionDelay) {
+      return; // Skip match detection during delay
+    }
+
     const bubbles = gameRef.current.bubbles.filter(b => !b.matched);
 
     for (let i = 0; i < bubbles.length; i++) {
@@ -717,6 +726,7 @@ export default function Game() {
     gameRef.current.lastMatchTime = 0;
     gameRef.current.comboMultiplier = 1;
     gameRef.current.freezeTimeLeft = 0;
+    gameRef.current.levelStartTime = Date.now(); // Set level start time for match delay
 
     // Spawn bubbles for next level with increased count and speed
     const bubbleCount = gameConfig.bubbleCount + gameRef.current.level;
