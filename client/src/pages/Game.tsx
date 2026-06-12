@@ -140,6 +140,9 @@ export default function Game() {
   const [inventory, setInventory] = useState<InventoryState>(loadInventory());
   const [timeSlowActive, setTimeSlowActive] = useState(false);
   const [timeSlowTimeLeft, setTimeSlowTimeLeft] = useState(0);
+  const [hasUsedExtraTimeAd, setHasUsedExtraTimeAd] = useState(false);
+  const [hasUsedReplayAd, setHasUsedReplayAd] = useState(false);
+  const [showReplayAdOption, setShowReplayAdOption] = useState(false);
 
   // Start background music on component mount
   useEffect(() => {
@@ -210,6 +213,10 @@ export default function Game() {
       if (gameRef.current.timeLeft === 0) {
         gameRef.current.gameOver = true;
         gameRef.current.isPaused = true;
+        // Show replay option if Extra Time ad was already used
+        if (hasUsedExtraTimeAd && !hasUsedReplayAd) {
+          setShowReplayAdOption(true);
+        }
         setGameState(prev => ({ ...prev, gameOver: true, isPaused: true }));
       }
     }, 1000);
@@ -925,7 +932,7 @@ export default function Game() {
     }
   };
 
-  const handleRewardSelected = async (reward: 'extraTime' | 'timeSlow' | 'stickingBubble' | 'bombBubble') => {
+  const handleRewardSelected = async (reward: 'extraTime' | 'timeSlow' | 'stickingBubble' | 'bombBubble' | 'replay') => {
     if (reward === 'timeSlow') {
       const updatedInventory = addPowerUp('timeSlow', 1);
       setInventory(updatedInventory);
@@ -939,6 +946,47 @@ export default function Game() {
       // Extra time: add 30 seconds to current level
       gameRef.current.timeLeft += 30;
       setGameState(prev => ({ ...prev, timeLeft: gameRef.current.timeLeft }));
+      setHasUsedExtraTimeAd(true);
+    } else if (reward === 'replay') {
+      // Replay level: reset game state
+      gameRef.current.bubbles = [];
+      gameRef.current.particles = [];
+      gameRef.current.score = 0;
+      gameRef.current.timeLeft = gameConfig.timeLimit;
+      gameRef.current.isPaused = false;
+      gameRef.current.gameOver = false;
+      gameRef.current.levelComplete = false;
+      gameRef.current.comboStreak = 0;
+      gameRef.current.lastMatchTime = 0;
+      gameRef.current.comboMultiplier = 1;
+      gameRef.current.freezeTimeLeft = 0;
+      gameRef.current.levelStartTime = Date.now();
+      
+      // Spawn bubbles for replay
+      const bubbleCount = gameConfig.bubbleCount + gameRef.current.level;
+      for (let i = 0; i < bubbleCount; i++) {
+        const speedMultiplier = 1 + gameRef.current.level * 0.15;
+        const radius = gameRef.current.level >= 80 ? Math.max(15, 25 - (gameRef.current.level - 80) * 0.3) : 25;
+        const bubble: Bubble = {
+          id: `bubble-${i}`,
+          x: Math.random() * (CANVAS_WIDTH - 60) + 30,
+          y: Math.random() * (CANVAS_HEIGHT - 200) + 50,
+          color: BUBBLE_COLORS[Math.floor(Math.random() * BUBBLE_COLORS.length)],
+          radius: radius,
+          vx: (Math.random() - 0.5) * 4 * speedMultiplier,
+          vy: (Math.random() - 0.5) * 4 * speedMultiplier,
+          matched: false,
+          isDragging: false,
+          popAnimation: 0,
+          isAnchored: false,
+          anchorTimeLeft: 0,
+        };
+        gameRef.current.bubbles.push(bubble);
+      }
+      
+      setGameState(prev => ({ ...prev, gameOver: false, score: 0, timeLeft: gameConfig.timeLimit }));
+      setHasUsedReplayAd(true);
+      setShowReplayAdOption(false);
     }
     setShowRewardModal(false);
   };
@@ -1103,12 +1151,20 @@ export default function Game() {
                 <p className="text-neon-pink mb-4 text-lg font-bold">Level {gameState.level} Completed!</p>
               )}
               <div className="flex gap-2 justify-center flex-wrap">
-                {gameState.gameOver && !gameState.levelComplete && (
+                {gameState.gameOver && !gameState.levelComplete && !hasUsedExtraTimeAd && !showReplayAdOption && (
                   <Button
                     onClick={() => setShowRewardModal(true)}
                     className="bg-gradient-to-r from-neon-cyan to-neon-magenta text-slate-900 font-bold"
                   >
                     🎬 Watch Ad for Extra Time
+                  </Button>
+                )}
+                {showReplayAdOption && !hasUsedReplayAd && (
+                  <Button
+                    onClick={() => setShowRewardModal(true)}
+                    className="bg-gradient-to-r from-neon-orange to-neon-pink text-slate-900 font-bold"
+                  >
+                    🎬 Watch Ad to Replay Level
                   </Button>
                 )}
                 {gameState.levelComplete && (
@@ -1196,6 +1252,7 @@ export default function Game() {
         isOpen={showRewardModal}
         onClose={() => setShowRewardModal(false)}
         onSelectReward={handleRewardSelected}
+        isReplayMode={showReplayAdOption}
       />
     </div>
   );
