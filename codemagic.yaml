@@ -4,11 +4,10 @@ workflows:
     instance_type: mac_mini_m1
     max_build_duration: 120
     environment:
-      environment:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: "Space Bubble Match - LouJJStudios"
-        app_store_connect_key: $APP_STORE_CONNECT_PRIVATE_KEY
+      vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
         BUNDLE_ID: "Space Bubble Match - LouJJStudios"
