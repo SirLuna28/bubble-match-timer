@@ -84,7 +84,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - $DEVELOPER_EMAIL
+          - kobeluna71@yahoo.com
         notify:
           success: true
           failure: true
