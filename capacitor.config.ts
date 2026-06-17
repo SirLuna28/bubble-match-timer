@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.loujjstudio.bubblematchtime',
+ appId: 'Space Bubble Match - LouJJStudios',
   appName: 'Bubble Match Timer',
   webDir: 'dist/public'
 };
